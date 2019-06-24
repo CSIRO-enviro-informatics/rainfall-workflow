@@ -42,7 +42,8 @@ def add_missing_zeros(str_array):
 # Limit coordinates of global netcdf file to Australia
 def limit_coordinates(netcdf_file_path):
     data = xr.open_mfdataset(netcdf_file_path)
-    aus_data = data.sel(lat=slice(-9.140625, -45.0), lon=slice(110.03906, 157.85156))
+    aus_data = data.sel(lat=slice(-9.140625, -45.0), lon=slice(110.03906, 157.85156)) # these coordinates are take from
+    # past bounded access-g data - they do not line out exactly with SMIPS data and could be changed to do so
     return aus_data
 
 
