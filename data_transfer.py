@@ -1,5 +1,5 @@
-# Extract data from a NetCDF container
-# variable: Blended_Precipitation
+# Move ACCESS-G forecast data from NCI to our network
+# limit to Australia only to save space
 
 import pysftp
 from getpass import getpass
@@ -16,7 +16,7 @@ def get_dates():
     months = [str(x) for x in num_months if x <= now.month]
     months = add_missing_zeros(months)
 
-    # Not equal to today or even yesterday as won't have data that recent.
+    # Not equal to today as won't have data that recent.
     days = [str(x) for x in num_days]
     days = add_missing_zeros(days)
 
@@ -30,7 +30,7 @@ def get_dates():
             else:
                 month_dates = [year + month + day for day in days[:31]]
         else:
-            month_dates = [year + month + day for day in days[:now.day-2]]
+            month_dates = [year + month + day for day in days[:now.day-1]]
         dates.extend(month_dates)
     return dates
 
@@ -54,7 +54,6 @@ def transfer_past_files():
     # Connection can't find hostkey
     #cnopts=pysftp.CnOpts()
     #cnopts.hostkeys = None
-    #cnopts.hostkeys.load('/etc/ssh/ssh_host_rsa_key')
 
     with pysftp.Connection(host=my_hostname, username=my_username, password=my_password) as sftp:
         print("Connection succesfully established ... ")
@@ -62,22 +61,12 @@ def transfer_past_files():
         # Switch to a remote directory
         sftp.cwd('/g/data3/lb4/ops_aps2/access-g/0001/')
 
-        # Obtain structure of the remote directory '/var/www/vhosts'
-        directory_structure = sftp.listdir_attr()
-
-        # Print data
-        #for attr in directory_structure:
-        #    print(attr.filename, attr)
-
         nc_filename = 'accum_prcp.nc'
 
         # Define the file that you want to download from the remote directory
         dates = get_dates()
         hour = '1200'
         hr = '12'
-
-        # Define the local path where the file will be saved
-        # or absolute "C:\Users\sdkca\Desktop\TUTORIAL.txt"
 
         networkPath = '//osm-12-cdc.it.csiro.au/OSM_CBR_LW_SATSOILMOIST_source/BOM-ACCESS-G/ACCESS_G_00z/2019/'
         localPath = './test/'
@@ -94,7 +83,6 @@ def transfer_past_files():
             #open(networkPath + new_file_name).write(australiaFile)
 
             print('File: ' + localFilePath + ' written')
-
     # connection closed automatically at the end of the with-block
 
 
