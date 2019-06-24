@@ -17,20 +17,20 @@ def get_dates():
     months = add_missing_zeros(months)
 
     # Not equal to today or even yesterday as won't have data that recent.
-    days = [str(x) for x in num_days if x < now.day - 1]
+    days = [str(x) for x in num_days]
     days = add_missing_zeros(days)
 
     dates = []
     for month in months:
-        if month != now.month:
+        if int(month) != now.month:
             if month == '02':
-                month_dates = [year+month+day for day in days[:29]]
+                month_dates = [year+month+day for day in days[:28]]
             elif month in ['04','06','09','11']:
-                month_dates = [year + month + day for day in days[:31]]
+                month_dates = [year + month + day for day in days[:30]]
             else:
-                month_dates = [year + month + day for day in days[:32]]
+                month_dates = [year + month + day for day in days[:31]]
         else:
-            month_dates = [year + month + day for day in days[:now.day-1]]
+            month_dates = [year + month + day for day in days[:now.day-2]]
         dates.extend(month_dates)
     return dates
 
@@ -45,53 +45,59 @@ def limit_coordinates(netcdf_file_path):
     aus_data = data.sel(lat=slice(-9.140625, -45.0), lon=slice(110.03906, 157.85156))
     return aus_data
 
-my_hostname = 'raijin.nci.org.au'
-my_username = 'aa1582'
-my_password = getpass()
 
-# Connection can't find hostkey
-#cnopts=pysftp.CnOpts()
-#cnopts.hostkeys = None
-#cnopts.hostkeys.load('/etc/ssh/ssh_host_rsa_key')
+def transfer_past_files():
+    my_hostname = 'raijin.nci.org.au'
+    my_username = 'aa1582'
+    my_password = getpass()
 
-with pysftp.Connection(host=my_hostname, username=my_username, password=my_password) as sftp:
-    print("Connection succesfully established ... ")
+    # Connection can't find hostkey
+    #cnopts=pysftp.CnOpts()
+    #cnopts.hostkeys = None
+    #cnopts.hostkeys.load('/etc/ssh/ssh_host_rsa_key')
 
-    # Switch to a remote directory
-    sftp.cwd('/g/data3/lb4/ops_aps2/access-g/0001/')
+    with pysftp.Connection(host=my_hostname, username=my_username, password=my_password) as sftp:
+        print("Connection succesfully established ... ")
 
-    # Obtain structure of the remote directory '/var/www/vhosts'
-    directory_structure = sftp.listdir_attr()
+        # Switch to a remote directory
+        sftp.cwd('/g/data3/lb4/ops_aps2/access-g/0001/')
 
-    # Print data
-    #for attr in directory_structure:
-    #    print(attr.filename, attr)
+        # Obtain structure of the remote directory '/var/www/vhosts'
+        directory_structure = sftp.listdir_attr()
 
-    nc_filename = 'accum_prcp.nc'
+        # Print data
+        #for attr in directory_structure:
+        #    print(attr.filename, attr)
 
-    # Define the file that you want to download from the remote directory
-    dates = get_dates()
-    hour = '1200'
-    hr = '12'
+        nc_filename = 'accum_prcp.nc'
 
-    # Define the local path where the file will be saved
-    # or absolute "C:\Users\sdkca\Desktop\TUTORIAL.txt"
+        # Define the file that you want to download from the remote directory
+        dates = get_dates()
+        hour = '1200'
+        hr = '12'
 
-    networkPath = '//osm-12-cdc.it.csiro.au/OSM_CBR_LW_SATSOILMOIST_source/BOM-ACCESS-G/ACCESS_G_00z/2019/'
-    localPath = './test/'
+        # Define the local path where the file will be saved
+        # or absolute "C:\Users\sdkca\Desktop\TUTORIAL.txt"
 
-    for date in dates:
-        new_file_name = 'ACCESS_G_accum_prcp_fc_' + date + hr + '.nc'
-        remoteFilePath = date + '/' + hour + '/fc/sfc/' + nc_filename
-        localFilePath = localPath + new_file_name
-        sftp.get(remoteFilePath, localFilePath)
+        networkPath = '//osm-12-cdc.it.csiro.au/OSM_CBR_LW_SATSOILMOIST_source/BOM-ACCESS-G/ACCESS_G_00z/2019/'
+        localPath = './test/'
 
-        australiaFile = limit_coordinates(localFilePath)
-        #temp_path = localPath + 'temp_ACCESS_G_accum_prcp_fc_.nc'
-        australiaFile.to_netcdf(networkPath + new_file_name)
-        #open(networkPath + new_file_name).write(australiaFile)
+        for date in dates:
+            new_file_name = 'ACCESS_G_accum_prcp_fc_' + date + hr + '.nc'
+            remoteFilePath = date + '/' + hour + '/fc/sfc/' + nc_filename
+            localFilePath = localPath + new_file_name
+            sftp.get(remoteFilePath, localFilePath)
 
-        print('File: ' + localFilePath + ' written')
+            australiaFile = limit_coordinates(localFilePath)
+            #temp_path = localPath + 'temp_ACCESS_G_accum_prcp_fc_.nc'
+            australiaFile.to_netcdf(networkPath + new_file_name)
+            #open(networkPath + new_file_name).write(australiaFile)
 
-# connection closed automatically at the end of the with-block
+            print('File: ' + localFilePath + ' written')
 
+    # connection closed automatically at the end of the with-block
+
+
+if __name__ == '__main__':
+    transfer_past_files()
+    #print(get_dates())

@@ -1,1 +1,5 @@
 venv/
+test/
+.idea/misc.xml
+.idea/workspace.xml
+.ipynb_checkpoints/
