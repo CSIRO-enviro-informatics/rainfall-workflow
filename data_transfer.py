@@ -1,5 +1,6 @@
 # Move ACCESS-G forecast data from NCI to our network
 # limit to Australia only to save space
+# Have to run through terminal due to getpass()
 
 import pysftp
 from getpass import getpass
@@ -72,7 +73,11 @@ def transfer_files(update_only=True):
 
         if update_only:
             start_date = get_start_date()
+            if start_date >= datetime.datetime.now() and datetime.datetime.now().hour < 8: # At ~7.30am each day, the
+                # previous day's 1200 file is uploaded to NCI
+                return('Files are already up to date')
             dates = get_dates(start_date)
+
         else:
             dates=get_dates()
 
@@ -115,5 +120,5 @@ def get_start_date():
 
 if __name__ == '__main__':
     transfer_files()  # Run without args to only get new files
-    #print(get_dates(get_start_date()))
+    print(get_dates(get_start_date()))
 
