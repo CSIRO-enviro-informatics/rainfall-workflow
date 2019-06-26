@@ -71,11 +71,13 @@ def transfer_files(update_only=True):
 
         nc_filename = 'accum_prcp.nc'
 
+        today = datetime.datetime.now().date()
+        yesterday = today - datetime.timedelta(days=1)
         if update_only:
             start_date = get_start_date()
-            if start_date >= datetime.datetime.now() and datetime.datetime.now().hour < 8: # At ~7.30am each day, the
-                # previous day's 1200 file is uploaded to NCI
-                return('Files are already up to date')
+            if start_date >= today or (start_date == yesterday and datetime.datetime.now().hour < 8):
+                # The previous day's 1200 file is uploaded to NCI at ~7.30am each day
+                return(print('Files are already up to date'))
             dates = get_dates(start_date)
 
         else:
@@ -120,5 +122,5 @@ def get_start_date():
 
 if __name__ == '__main__':
     transfer_files()  # Run without args to only get new files
-    print(get_dates(get_start_date()))
+    #print(get_dates(get_start_date()))
 
