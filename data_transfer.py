@@ -84,13 +84,12 @@ def transfer_files(update_only=True):
         else:
             dates=get_dates()
 
-        hour = '1200'
-        hr = hour[:2]
+        hour = settings.ACCESS_HOUR
 
-        localPath = './test/'
+        localPath = 'test/'
 
         for date in dates:
-            new_file_name = 'ACCESS_G_accum_prcp_fc_' + date + hr + '.nc'
+            new_file_name = settings.access_g_filename(date)
             remoteFilePath = date + '/' + hour + '/fc/sfc/' + nc_filename
             localFilePath = localPath + new_file_name
             sftp.get(remoteFilePath, localFilePath)
@@ -100,13 +99,14 @@ def transfer_files(update_only=True):
             australiaFile.to_netcdf(networkPath + new_file_name)
             #open(networkPath + new_file_name).write(australiaFile)
 
-            print('File: ' + localFilePath + ' written')
+            print('File: ' + new_file_name + ' written')
     # connection closed automatically at the end of the with-block
 
 
 # Look into the files at osm to find which recent haven't been uploaded yet
 def get_start_date():
     list_of_files = glob.glob(networkPath + '*.nc')
+    #print(networkPath, list_of_files)
     latest_file = max(list_of_files, key=os.path.getctime)
     #print(latest_file)
     latest_file = latest_file.rsplit('_')[-1]
