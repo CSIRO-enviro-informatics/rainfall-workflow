@@ -4,7 +4,7 @@
 # 		○ Re-gridded to 1 km grid
 #
 # Jobs:
-# 	- Re-grid ACCESS data from 12km grid to 1km
+# 	- Re-grid SMIPS data from 1km grid to ACCESS-G size (~26x39km) grid
 # 	- For each grid point: Create post-processed forecast
 # 		○ Extract symmetric grid point(s) from predictand and predictor
 # 		○ Model fit/forecast

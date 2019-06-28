@@ -8,8 +8,9 @@ import datetime
 import xarray as xr
 import glob
 import os
+import settings
 
-networkPath = '//osm-12-cdc.it.csiro.au/OSM_CBR_LW_SATSOILMOIST_source/BOM-ACCESS-G/ACCESS_G_00z/2019/'
+networkPath = settings.ACCESS_G_PATH
 
 
 def get_dates(start_date=datetime.date(2019, 1, 1)):
