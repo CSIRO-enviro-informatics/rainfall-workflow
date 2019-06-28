@@ -12,6 +12,7 @@ import settings
 import xarray as xr
 import datetime
 import numpy as np
+from data_transfer import create_str_date
 
 smips_file = settings.SMIPS_PATH + settings.SMIPS_CONTAINER  # original
  # target
@@ -27,14 +28,16 @@ def extract_timestep(nc, date):
 
 # Save the resampled netcdf file containing a day and only blended_precipitation
 def save_timestep(cube, date):
-    new_file = 'test/SMIPS_'+str(date)+'.nc'
+    date = convert_date(date)
+
+    new_file = 'test/SMIPS_'+ str_date+'.nc'
     iris.save(cube, new_file)
 
 
 # Resample SMIPS grids to same shape as ACCESS-G
 def regrid(cube, target_file):
     target = iris.load(target_file)
-    resampled = cube.regrid(target)
+    resampled = cube.regrid(target, iris.analysis.AreaWeighted())
     return resampled
 
 
@@ -50,10 +53,14 @@ if __name__ == '__main__':
     print(nc.time)
     for date in nc.time:
         date = convert_date(date)
-        timestep = extract_timestep(nc, date)
-        access_g_file = settings.ACCESS_G_PATH + settings.access_g_filename(date)  # target
-        regridded = regrid(timestep, access_g_file)
-        save_timestep(regridded, date)
+
+        if date.year == 2019:
+            str_date = create_str_date(date.year, date.month, date.day)
+
+            timestep = extract_timestep(nc, date)
+            access_g_file = settings.ACCESS_G_PATH + settings.access_g_filename(str_date)  # target
+            regridded = regrid(timestep, access_g_file)
+            save_timestep(regridded, str_date)
 
 
     #date = datetime.date(2015, 11, 20)
@@ -61,4 +68,3 @@ if __name__ == '__main__':
 #bp_constraint = iris.Constraint(name='Blended_Precipitation')
 #print(smips_file)
 #smips_cubes = iris.load(smips_file)
-#print(smips_cubes)

@@ -13,6 +13,13 @@ import settings
 networkPath = settings.ACCESS_G_PATH
 
 
+def create_str_date(year, month, day):
+    str_year = str(year)
+    str_month = add_missing_zeros([str(month)])[0]
+    str_day = add_missing_zeros([str(day)])[0]
+    return str_year + str_month + str_day
+
+
 def get_dates(start_date=datetime.date(2019, 1, 1)):
     year = start_date.year
     num_months = [x for x in range(1,13)]
