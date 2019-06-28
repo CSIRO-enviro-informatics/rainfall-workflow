@@ -2,4 +2,4 @@ venv/
 test/
 .idea/
 .ipynb_checkpoints/
-regridding_examples/
+conda_env/
