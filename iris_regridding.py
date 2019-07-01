@@ -15,7 +15,12 @@ import numpy as np
 from data_transfer import create_str_date
 
 smips_file = settings.SMIPS_PATH + settings.SMIPS_CONTAINER  # original
- # target
+nc = xr.open_dataset(smips_file)
+min_lat = min(nc.lat.values)
+max_lat = max(nc.lat.values)
+min_lon = min(nc.lon.values)
+max_lon = max(nc.lon.values)
+
 
 # Extract and treat each day seperately - for the future, and because the SMIPS file is so big anything else would cause memory errors
 def extract_timestep(nc, date):
@@ -27,16 +32,22 @@ def extract_timestep(nc, date):
 
 
 # Save the resampled netcdf file containing a day and only blended_precipitation
-def save_timestep(cube, date):
-    date = convert_date(date)
-
-    new_file = 'test/SMIPS_'+ str_date+'.nc'
+def save_timestep(cube, str_date):
+    new_file = 'test/SMIPS_'+ str_date +'.nc'
     iris.save(cube, new_file)
 
 
 # Resample SMIPS grids to same shape as ACCESS-G
 def regrid(cube, target_file):
-    target = iris.load(target_file)
+    target = iris.load_cube(target_file, 'accumulated precipitation') #, constraint)
+
+    target.coord('longitude').guess_bounds()
+    target.coord('latitude').guess_bounds()
+    cube.coord('longitude').guess_bounds()
+    cube.coord('latitude').guess_bounds()
+
+    cube.coord('longitude').standard_name = 'longitude'
+    cube.coord('latitude').standard_name = 'latitude'
     resampled = cube.regrid(target, iris.analysis.AreaWeighted())
     return resampled
 
@@ -49,8 +60,7 @@ def convert_date(date):
 
 
 if __name__ == '__main__':
-    nc = xr.open_dataset(smips_file)
-    print(nc.time)
+    #print(nc.time)
     for date in nc.time:
         date = convert_date(date)
 
