@@ -12,7 +12,6 @@ import settings
 
 networkPath = settings.ACCESS_G_PATH
 
-
 def create_str_date(year, month, day):
     str_year = str(year)
     str_month = add_missing_zeros([str(month)])[0]
@@ -20,14 +19,19 @@ def create_str_date(year, month, day):
     return str_year + str_month + str_day
 
 
-def get_dates(start_date=datetime.date(2019, 1, 1)):
-    year = start_date.year
+def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.today()):
+    years = [str(x) for x in range(start_date.year, end_date.year+1)]
+
     num_months = [x for x in range(1,13)]
     num_days = [x for x in range(1,32)]
 
-    now = datetime.datetime.now()
+    #now = datetime.datetime.now()
     #now = datetime.datetime(2019, 1, 4, 12, 00)  # test
-    months = [str(x) for x in num_months if start_date.month <= x <= now.month]
+    if start_date.year == end_date.year:
+        months = [str(x) for x in num_months if start_date.month <= x <= end_date.month]
+    else:
+        months = [str(x) for x in num_months if start_date.month <= x]
+        months.extend([str(x) for x in num_months if x <= end_date.month])
     months = add_missing_zeros(months)
 
     # Not equal to today as won't have data that recent.
@@ -35,20 +39,44 @@ def get_dates(start_date=datetime.date(2019, 1, 1)):
     days = add_missing_zeros(days)
 
     dates = []
-    for month in months:
-        if int(month) != now.month:
-            if month == '02':
-                month_dates = [year+month+day for day in days[:28]]
-            elif month in ['04','06','09','11']:
-                month_dates = [year + month + day for day in days[:30]]
+    for year in years:
+        for month in months:
+            if int(month) == (start_date.month and end_date.month ) and start_date.year == end_date.year:
+                month_dates = [year + month + day for day in days[start_date.day-1:end_date.day-1]]
+
+            elif int(month) == start_date.month and int(year) == start_date.year:
+                if month == '02':
+                    month_dates = [year + month + day for day in days[start_date.day-1:28]]
+                elif month in ['04', '06', '09', '11']:
+                    month_dates = [year + month + day for day in days[start_date.day-1:30]]
+                else:
+                    month_dates = [year + month + day for day in days[start_date.day-1:31]]
+
+            elif int(month) == end_date.month and int(year) == end_date.year:
+                month_dates = [year + month + day for day in days[:end_date.day-1]]
+
+            elif year==end_date.year and month < end_date.month:
+                get_full_month(year, month, days)
+
+            elif year==start_date.year and month > start_date.month:
+                get_full_month(year, month, days)
+
             else:
-                month_dates = [year + month + day for day in days[:31]]
-        else:
-            month_dates = [str(year) + month + day for day in days[start_date.day-1:now.day-1]]
-        dates.extend(month_dates)
+                month_dates = []
+
+            dates.extend(month_dates)
     print(dates)
     return dates
 
+
+def get_full_month(year, month, days):
+    if month == '02':
+        month_dates = [year + month + day for day in days[:28]]
+    elif month in ['04', '06', '09', '11']:
+        month_dates = [year + month + day for day in days[:30]]
+    else:
+        month_dates = [year + month + day for day in days[:31]]
+    return month_dates
 
 def add_missing_zeros(str_array):
     return [x if len(x) == 2 else '0' + x for x in str_array]
@@ -62,7 +90,7 @@ def limit_coordinates(netcdf_file_path):
     return aus_data
 
 
-def transfer_files(update_only=True):
+def transfer_files(start_date=None, end_date=datetime.date.today()):
     my_hostname = 'raijin.nci.org.au'
     my_username = 'aa1582'
     my_password = getpass()
@@ -71,6 +99,18 @@ def transfer_files(update_only=True):
     #cnopts=pysftp.CnOpts()
     #cnopts.hostkeys = None
 
+    if not start_date:
+        start_date = get_start_date()
+
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+
+    if start_date >= today or (start_date == yesterday and datetime.datetime.now().hour < 8):
+        # The previous day's 1200 file is uploaded to NCI at ~7.30am each day
+        return (print('Files are already up to date'))
+
+    dates = get_dates(start_date, end_date)
+
     with pysftp.Connection(host=my_hostname, username=my_username, password=my_password) as sftp:
         print("Connection succesfully established ... ")
 
@@ -78,19 +118,6 @@ def transfer_files(update_only=True):
         sftp.cwd('/g/data3/lb4/ops_aps2/access-g/0001/')
 
         nc_filename = 'accum_prcp.nc'
-
-        today = datetime.datetime.now().date()
-        yesterday = today - datetime.timedelta(days=1)
-        if update_only:
-            start_date = get_start_date()
-            if start_date >= today or (start_date == yesterday and datetime.datetime.now().hour < 8):
-                # The previous day's 1200 file is uploaded to NCI at ~7.30am each day
-                return(print('Files are already up to date'))
-            dates = get_dates(start_date)
-
-        else:
-            dates=get_dates()
-
         hour = settings.ACCESS_HOUR
 
         localPath = 'test/'
@@ -103,7 +130,9 @@ def transfer_files(update_only=True):
 
             australiaFile = limit_coordinates(localFilePath)
             #temp_path = localPath + 'temp_ACCESS_G_accum_prcp_fc_.nc'
-            australiaFile.to_netcdf(networkPath + new_file_name)
+            write_path = networkPath + date[:3] + '/'
+
+            australiaFile.to_netcdf(write_path + new_file_name)
             #open(networkPath + new_file_name).write(australiaFile)
 
             print('File: ' + new_file_name + ' written')
@@ -112,7 +141,7 @@ def transfer_files(update_only=True):
 
 # Look into the files at osm to find which recent haven't been uploaded yet
 def get_start_date():
-    list_of_files = glob.glob(networkPath + '*.nc')
+    list_of_files = glob.glob(networkPath + '2019/*.nc')
     #print(networkPath, list_of_files)
     latest_file = max(list_of_files, key=os.path.getctime)
     #print(latest_file)
@@ -130,5 +159,6 @@ def get_start_date():
 
 if __name__ == '__main__':
     transfer_files()  # Run without args to only get new files
+    transfer_files(start_date=datetime.date(2018,12,7), end_date=datetime.date(2019,1,1))  # Run with start and end date (not inclusive of end)
     #print(get_dates(get_start_date()))
 
