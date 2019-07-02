@@ -12,7 +12,7 @@ import settings
 import xarray as xr
 import datetime
 import numpy as np
-from data_transfer import create_str_date
+from data_transfer import create_str_date, get_start_date, get_dates
 
 smips_file = settings.SMIPS_PATH + settings.SMIPS_CONTAINER  # original
 smips_nc = xr.open_dataset(smips_file)
@@ -74,11 +74,30 @@ def convert_date(date):
     return dt_date.date()
 
 
-if __name__ == '__main__':
+def run_regridding(update_only=True):
     regridder = init_regridder()
-    for date in smips_nc.time:
-        date = convert_date(date)  # from np datetime to datetime datetime
-        str_date = create_str_date(date.year, date.month, date.day)  # for file name
-        timestep = extract_timestep(smips_nc, date)  # this is the daily smips cube
-        regridded = regrid(timestep, regridder)  # regridding to match access-g shape
-        save_timestep(regridded, str_date)  # save to disk
+    if not update_only:
+        for date in smips_nc.time:
+            date = convert_date(date)  # from np datetime to datetime datetime
+            str_date = create_str_date(date.year, date.month, date.day)  # for file name
+            timestep = extract_timestep(smips_nc, date)  # this is the daily smips cube
+            regridded = regrid(timestep, regridder)  # regridding to match access-g shape
+            save_timestep(regridded, str_date)  # save to disk
+    else:
+        start_date = get_start_date('test/')
+        yesterday = datetime.date.today() - datetime.timedelta(days=1)
+        if start_date >= yesterday:
+            print('Regrid files are already up to date')
+            #print(start_date, yesterday)
+            return
+
+        str_dates = get_dates(start_date, end_date=yesterday)  # because SMIPS data is two days behind: eg on 02/07 at 1am, the last point was added, for 30/06
+        for str_date in str_dates:
+            date = datetime.date(str_date[:4], str_date[4:6], str_date[6:8])
+            timestep = extract_timestep(smips_nc, date)  # this is the daily smips cube
+            regridded = regrid(timestep, regridder)  # regridding to match access-g shape
+            save_timestep(regridded, str_date)  # save to disk
+
+if __name__ == '__main__':
+    #run_regridding(update_only=False)  # regrid all smips days
+    run_regridding()  # only regrid new

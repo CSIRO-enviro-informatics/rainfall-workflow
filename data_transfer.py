@@ -130,7 +130,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
 
             australiaFile = limit_coordinates(localFilePath)
             #temp_path = localPath + 'temp_ACCESS_G_accum_prcp_fc_.nc'
-            write_path = networkPath + date[:3] + '/'
+            write_path = networkPath + date[:4] + '/'
 
             australiaFile.to_netcdf(write_path + new_file_name)
             #open(networkPath + new_file_name).write(australiaFile)
@@ -140,13 +140,16 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
 
 
 # Look into the files at osm to find which recent haven't been uploaded yet
-def get_start_date():
-    list_of_files = glob.glob(networkPath + '2019/*.nc')
+def get_start_date(file_path = networkPath):  # Adapted to be usable for getting regridded smips files
+    list_of_files = glob.glob(file_path + '2019/*.nc')
     #print(networkPath, list_of_files)
     latest_file = max(list_of_files, key=os.path.getctime)
     #print(latest_file)
     latest_file = latest_file.rsplit('_')[-1]
-    start_date = latest_file.split('12.nc', 1)[0]
+    if '12z' in file_path:
+        start_date = latest_file.split('12.nc', 1)[0]
+    else:
+        start_date = latest_file.split('.nc', 1)[0]
     #print(start_date)
 
     start_year = int(start_date[:4])
@@ -159,6 +162,6 @@ def get_start_date():
 
 if __name__ == '__main__':
     transfer_files()  # Run without args to only get new files
-    transfer_files(start_date=datetime.date(2018,12,7), end_date=datetime.date(2019,1,1))  # Run with start and end date (not inclusive of end)
+    transfer_files(start_date=datetime.date(2018,12,16), end_date=datetime.date(2019,1,1))  # Run with start and end date (not inclusive of end)
     #print(get_dates(get_start_date()))
 
