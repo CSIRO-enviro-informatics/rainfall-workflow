@@ -12,10 +12,11 @@ import settings
 
 networkPath = settings.ACCESS_G_PATH
 
-def create_str_date(year, month, day):
-    str_year = str(year)
-    str_month = add_missing_zeros([str(month)])[0]
-    str_day = add_missing_zeros([str(day)])[0]
+
+def create_str_date(date):
+    str_year = str(date.year)
+    str_month = add_missing_zeros([str(date.month)])[0]
+    str_day = add_missing_zeros([str(date.day)])[0]
     return str_year + str_month + str_day
 
 
@@ -129,11 +130,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
             sftp.get(remoteFilePath, localFilePath)
 
             australiaFile = limit_coordinates(localFilePath)
-            #temp_path = localPath + 'temp_ACCESS_G_accum_prcp_fc_.nc'
-            write_path = networkPath + date[:4] + '/'
-
-            australiaFile.to_netcdf(write_path + new_file_name)
-            #open(networkPath + new_file_name).write(australiaFile)
+            australiaFile.to_netcdf(networkPath + new_file_name)
 
             print('File: ' + new_file_name + ' written')
     # connection closed automatically at the end of the with-block

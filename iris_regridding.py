@@ -41,7 +41,7 @@ def save_timestep(cube, str_date):
 # Creating the regridder is most resource intensive part, so create only once
 def init_regridder():
     # Random files to initialise the regridder
-    target_file = settings.ACCESS_G_PATH + '2019/' + settings.access_g_filename('20190101') # random access-g file
+    target_file = settings.ACCESS_G_PATH + settings.access_g_filename('20190101') # random access-g file
     cube = extract_timestep(smips_nc, datetime.date(2019, 1, 1))  # random smips file
 
     target = iris.load_cube(target_file, 'accumulated precipitation') #, constraint)
@@ -79,7 +79,7 @@ def run_regridding(update_only=True):
     if not update_only:
         for date in smips_nc.time:
             date = convert_date(date)  # from np datetime to datetime datetime
-            str_date = create_str_date(date.year, date.month, date.day)  # for file name
+            str_date = create_str_date(date)  # for file name
             timestep = extract_timestep(smips_nc, date)  # this is the daily smips cube
             regridded = regrid(timestep, regridder)  # regridding to match access-g shape
             save_timestep(regridded, str_date)  # save to disk
