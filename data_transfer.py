@@ -159,6 +159,6 @@ def get_start_date(file_path = networkPath):  # Adapted to be usable for getting
 
 if __name__ == '__main__':
     transfer_files()  # Run without args to only get new files
-    transfer_files(start_date=datetime.date(2018,12,16), end_date=datetime.date(2019,1,1))  # Run with start and end date (not inclusive of end)
+    transfer_files(start_date=datetime.date(2017,11,25), end_date=datetime.date(2017,11,26))  # Run with start and end date (not inclusive of end)
     #print(get_dates(get_start_date()))
 
