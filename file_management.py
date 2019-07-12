@@ -80,12 +80,11 @@ def create_cube(cubepathname, startdate, enddate):#, description):
     ylat = outcube.createVariable('lat', 'f4', 'lat')
 
     outcube.createDimension('time', None)#days
-    nctime = outcube.createVariable('time', 'i4', 'time')
+    nctime = outcube.createVariable('time', 'u4', 'time')
     nctime.setncatts({"long_name": "time", "units": "days since 1900-01-01 00:00:00.0 -0:00", "calendar":"gregorian"})
     nctime[:] = time[:days]
 
-    blended_precipitation = outcube.createVariable('blended_precipitation', 'f4', ('time', 'lat', 'lon'),
-                                                      fill_value=-9999.0, least_significant_digit=3)
+    blended_precipitation = outcube.createVariable('blended_precipitation', 'f', ('time', 'lat', 'lon'), least_significant_digit=3, fill_value=-9999.0)
     blended_precipitation.setncatts({'units':'millimetres'})
 
     # add attributes
@@ -112,10 +111,10 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
     cubepathname = os.path.join(settings.OUTCUBEPATH,cubename)
     localrefresh = refresh
     cube_new = False
-    if not os.path.exists(cubepathname):
-        print ('NetCDF Cube doesn\'t exist at ', cubepathname)
-        create_cube(cubepathname,settings.EFFECTIVESTARTDATE,date)
-        cube_new = True
+    #if not os.path.exists(cubepathname):
+        #print ('NetCDF Cube doesn\'t exist at ', cubepathname)
+    create_cube(cubepathname,settings.EFFECTIVESTARTDATE,date)
+    cube_new = True
 
     outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
@@ -146,7 +145,8 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
         file = file2process
 
         dataset = xr.open_dataset(file)
-        datain = dataset['blended_precipitation']
+        data = dataset['blended_precipitation'].values
+        datain = np.where(data==9.96921e+36, -9999.0, data)
 
         dt = convert_date(dataset.time.values)
         date = datetime.datetime.combine(dt, datetime.datetime.min.time())
@@ -154,12 +154,11 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
         dateindex = datedelta - startdelta
 
         print('Exporting to netCDF for date: ', date.isoformat())
-        print(outcube.variables['blended_precipitation'][dateindex, :])
-        print(datain.data[:])
         var = outcube.variables['blended_precipitation']
-        var[dateindex, :] = datain.data[:]
+        var[dateindex, :] = datain[:]
 
         print(dateindex)
+        #print(var[dateindex], datain.data[:])
 
     outcube.close()
 
