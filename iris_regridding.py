@@ -33,7 +33,7 @@ def extract_timestep(nc, date):
 
 # Save the resampled netcdf file containing a day and only blended_precipitation
 def save_timestep(cube, str_date):
-    new_file = 'test/SMIPS_blnd_prcp_regrid_'+ str_date +'.nc'
+    new_file = 'test/{}/SMIPS_blnd_prcp_regrid_{}.nc'.format(str_date[:4], str_date)
     iris.save(cube, new_file)
     print(new_file + ' saved')
 
@@ -74,7 +74,7 @@ def convert_date(date):
     return dt_date.date()
 
 
-def run_regridding(update_only=True):
+def run_regridding(update_only=True, start_date=False, end_date=False):
     regridder = init_regridder()
     if not update_only:
         for date in smips_nc.time:
@@ -84,20 +84,22 @@ def run_regridding(update_only=True):
             regridded = regrid(timestep, regridder)  # regridding to match access-g shape
             save_timestep(regridded, str_date)  # save to disk
     else:
-        start_date = get_start_date('test/')
+        if not start_date:
+           start_date = get_start_date('test/')
         yesterday = datetime.date.today() - datetime.timedelta(days=1)
         if start_date >= yesterday:
             print('Regrid files are already up to date')
             #print(start_date, yesterday)
             return
-
-        str_dates = get_dates(start_date, end_date=yesterday)  # because SMIPS data is two days behind: eg on 02/07 at 1am, the last point was added, for 30/06
+        if not end_date:
+            end_date = yesterday
+        str_dates = get_dates(start_date, end_date=end_date)  # because SMIPS data is two days behind: eg on 02/07 at 1am, the last point was added, for 30/06
         for str_date in str_dates:
-            date = datetime.date(str_date[:4], str_date[4:6], str_date[6:8])
+            date = datetime.date(int(str_date[:4]), int(str_date[4:6]), int(str_date[6:8]))
             timestep = extract_timestep(smips_nc, date)  # this is the daily smips cube
             regridded = regrid(timestep, regridder)  # regridding to match access-g shape
             save_timestep(regridded, str_date)  # save to disk
 
 if __name__ == '__main__':
     #run_regridding(update_only=False)  # regrid all smips days
-    run_regridding()  # only regrid new
+    run_regridding(start_date=datetime.date(2019, 1, 2), end_date=datetime.date(2019, 1, 3))  # only regrid new
