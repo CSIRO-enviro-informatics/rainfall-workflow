@@ -38,9 +38,10 @@ from data_transfer import create_str_date
 # from dojobber import DummyJob
 # from dojobber import RunonlyJob
 
-# Preliminary steps - only need to be checked
-# Get latest Access-g files
-# Regrid latest smips files
+# Preliminary steps - only need to be checked - should be done on a regular automatic basis?
+# 1. Get latest Access-g files
+# 2. Regrid latest smips files
+# 3. Aggregate new access-g and smips files into the big one
 
 # First step
 

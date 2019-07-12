@@ -198,6 +198,5 @@ def aggregate_smips():
 
 if __name__ == '__main__':
     #aggregate_smips()
-    aggregate_access_g(2017)
-    #aggregate_files(smips_name)
-    #aggregate_files(access_name)
+    #aggregate_access_g(2018)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
+    # Have aggregated 2016, 2017, 2019
