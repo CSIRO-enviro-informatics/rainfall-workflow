@@ -162,10 +162,10 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
 
         elif 'ACCESS' in cubename:
             if '20181008' in file:  # file with incomplete lead time dimension
-                padded = np.zeros((240, 154, 136))
+                padded = np.full((240, 154, 136), 1.0E36)
                 padded[:120, :154, :136] = dataset[var_name][:120, :154, :136].values
-                data = np.where(padded == 0, -9999.0, padded)
-                datain = np.where(data == 1.0E36, -9999.0, data)
+                #data = np.where(padded == 0, -9999.0, padded)
+                datain = np.where(padded == 1.0E36, -9999.0, padded)
             else:
                 data = dataset[var_name][:240, :154, :136].values
                 datain = np.where(data==1.0E36, -9999.0, data)
