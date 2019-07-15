@@ -42,7 +42,7 @@ def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.tod
     dates = []
     for year in years:
         for month in months:
-            if int(month) == (start_date.month and end_date.month ) and start_date.year == end_date.year:
+            if int(month) == start_date.month and end_date.month and start_date.year == end_date.year:
                 month_dates = [year + month + day for day in days[start_date.day-1:end_date.day-1]]
 
             elif int(month) == start_date.month and int(year) == start_date.year:
@@ -159,6 +159,6 @@ def get_start_date(file_path = networkPath):  # Adapted to be usable for getting
 
 if __name__ == '__main__':
     transfer_files()  # Run without args to only get new files
-    transfer_files(start_date=datetime.date(2017,11,25), end_date=datetime.date(2017,11,26))  # Run with start and end date (not inclusive of end)
+    #transfer_files(start_date=datetime.date(2017,11,25), end_date=datetime.date(2017,11,26))  # Run with start and end date (not inclusive of end)
     #print(get_dates(get_start_date()))
 

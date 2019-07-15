@@ -4,11 +4,12 @@ import os
 import xarray as xr
 import glob
 from iris_regridding import convert_date
+from data_transfer import create_str_date, get_dates
 import datetime
 import numpy as np
 
 aggregated_smips = 'SMIPS.nc'
-aggregated_access_g = 'ACCESS-G.nc'
+aggregated_access_g = 'ACCESS-G-test.nc'
 
 smips_name = 'SMIPS'
 access_name = 'ACCESS'
@@ -26,7 +27,7 @@ def create_cube(cubepathname, startdate, enddate):#, description):
     time = np.arange(dayssince,dayssince + days,1)
 
     if 'SMIPS' in cubepathname:
-        refcube = xr.open_dataset(settings.smips_filename('20190101'))
+        refcube = xr.open_dataset(settings.SMIPS_DEST_PATH + settings.smips_filename('20190101'))
         rows = len(refcube.lat.values)
         cols = len(refcube.lon.values)
 
@@ -108,10 +109,10 @@ def create_cube(cubepathname, startdate, enddate):#, description):
 
 
 
-def add_to_netcdf_cube(date, files, cubename, refresh=True):
+def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
     if 'SMIPS' in cubename:
         var_name = 'blended_precipitation'
-        cubepathname = os.path.join(settings.SMIPS_PATH, cubename)
+        cubepathname = os.path.join(settings.SMIPS_DEST_PATH, cubename)
         start_date = settings.SMIPS_STARTDATE
     elif 'ACCESS' in cubename:
         var_name = 'accum_prcp'
@@ -121,7 +122,7 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
     cube_new = False
     if not os.path.exists(cubepathname):
         print ('NetCDF Cube doesn\'t exist at ', cubepathname)
-        create_cube(cubepathname,start_date,date)
+        create_cube(cubepathname,start_date,end_date)
         cube_new = True
 
     outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
@@ -133,11 +134,11 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
     delta = datetime.timedelta(int(time[0][0]))
     startdelta = delta.days
     startbase = datetime.datetime(1900, 1, 1)
-    datedelta = (date - startbase).days
+    datedelta = (end_date - startbase).days
     start = startbase + delta
 
-    if date < start:
-        print ('date is before start date in NetCDF file ', date.isoformat())
+    if end_date < start:
+        print ('date is before start date in NetCDF file ', end_date.isoformat())
         return False, False
     property = files[0][1]
     datalist = outcube.get_variables_by_attributes(long_name=property)
@@ -169,17 +170,27 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
             else:
                 data = dataset[var_name][:240, :154, :136].values
                 datain = np.where(data==1.0E36, -9999.0, data)
-
-        str_date = file.rsplit('_', 1)[1].replace('12.nc', "")
+        if 'ACCESS' in cubename:
+            str_date = file.rsplit('_', 1)[1].replace('12.nc', "")
+        else:
+            str_date = file.rsplit('_', 1)[1].replace('.nc', "")
         date = datetime.datetime(int(str_date[:4]), int(str_date[4:6]), int(str_date[6:8]), 12)
         datedelta = (date - startbase).days
         dateindex = datedelta - startdelta
+        if dateindex >= 1203 or not(1 <= dateindex <= 1202):
+            print(dateindex, date, file)
+            print(datedelta, startbase, startdelta)
+
 
         print('Exporting to netCDF for date: ', date.isoformat())
 
         var = outcube.variables[var_name]
         var[dateindex, :] = datain[:]
+        #print(dataset.time.values[dateindex])
+        #if dataset.time.values[dateindex] > 43644:
+        #    print(dataset.time.values[dateindex], date, file)
         print(dateindex+1)
+
         #print(var[dateindex], datain.data[:])
 
     outcube.close()
@@ -192,17 +203,32 @@ def aggregate_access_g(year):
     #years = ['2016', '2017', '2018', '2019']
     #for year in years:
     files = [filename for filename in glob.glob(settings.ACCESS_G_PATH + str(year) + '/*12.nc')]
-    add_to_netcdf_cube(date=datetime.datetime(2019, 6, 30), cubename=aggregate_file, files=files)
+    add_to_netcdf_cube(end_date=settings.yesterday, cubename=aggregate_file, files=files)
     #add_to_netcdf_cube(date=datetime.datetime(2019, 6, 30), cubename=aggregate_file, files=['//OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/2018/ACCESS_G_accum_prcp_fc_2018103112.nc'])
 
 
-def aggregate_smips():
+def aggregate_smips(update_only=True, start_date=None):
     aggregate_file = aggregated_smips
-    files = [filename for filename in glob.glob('test/*/*.nc')]
-    add_to_netcdf_cube(date=datetime.datetime(2019, 6, 30), cubename=aggregate_file, files=files)
+    if update_only:
+        if not start_date:
+            smips = xr.open_dataset(settings.SMIPS_DEST_PATH + aggregate_file)
+            latest = smips.time.values[-1]
+            smips.close()
+            start_date = convert_date(latest)
+        dates = get_dates(start_date=start_date, end_date=settings.yesterday - datetime.timedelta(days=1))
+        files = [settings.SMIPS_DEST_PATH + settings.smips_filename(date) for date in dates]
+
+    else:
+        files= [file for file in glob.glob(settings.SMIPS_DEST_PATH +'*/*.nc')]
+    if len(files) <= 0:
+        return print('SMIPS aggregation is up to date')
+    add_to_netcdf_cube(end_date=settings.yesterday, cubename=aggregate_file, files=files)
 
 
 if __name__ == '__main__':
     #aggregate_smips()
-    aggregate_access_g(2018)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
+    aggregate_access_g(2016)
+    aggregate_access_g(2017)
+    aggregate_access_g(2018)
+    aggregate_access_g(2019)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
     # Have aggregated 2016, 2017, 2019

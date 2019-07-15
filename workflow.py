@@ -33,6 +33,10 @@ import datetime
 import settings
 from data_transfer import create_str_date
 
+import data_transfer
+import iris_regridding
+import file_management
+
 # import dojobber
 # from dojobber import Job
 # from dojobber import DummyJob
@@ -58,20 +62,29 @@ def transform(data):
     plt.show()
     return trans_data
 
-# Load data - access/smips
-# Extract 1 grid point of data # data must be in 1D array
-date = datetime.date(2019,6,30)  # Use most recent date
 
-access_g_file = settings.ACCESS_G_PATH + settings.access_g_filename(create_str_date(date))
-smips_file = settings.smips_filename(create_str_date(date))
+def transformation():
+    # Load data - access/smips
+    # Extract 1 grid point of data # data must be in 1D array
+    date = datetime.date(2019,6,30)  # Use most recent date
 
-forecast = xr.open_dataset(access_g_file)
-observation = xr.open_dataset(smips_file)
+    access_g_file = settings.ACCESS_G_PATH + settings.access_g_filename(create_str_date(date))
+    smips_file = settings.smips_filename(create_str_date(date))
 
-print(forecast.accum_prcp.values)
-print(observation.blended_precipitation.values)
+    forecast = xr.open_dataset(access_g_file)
+    observation = xr.open_dataset(smips_file)
 
-# Transform (normalise) a timestep of both observation and forecast data (separately)
+    print(forecast.accum_prcp.values)
+    print(observation.blended_precipitation.values)
 
+    # Transform (normalise) a timestep of both observation and forecast data (separately)
 
-#transform()
+    #transform()
+
+def daily_jobs():
+    data_transfer.transfer_files()
+    iris_regridding.run_regridding()
+    file_management.aggregate_smips()
+
+if __name__ == '__main__':
+    daily_jobs()
