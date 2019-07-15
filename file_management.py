@@ -9,7 +9,7 @@ import datetime
 import numpy as np
 
 aggregated_smips = 'SMIPS.nc'
-aggregated_access_g = 'ACCESS-G-test.nc'
+aggregated_access_g = 'ACCESS-G.nc'
 
 smips_name = 'SMIPS'
 access_name = 'ACCESS'
@@ -155,7 +155,7 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
     for file2process in files:
         file = file2process
 
-        dataset = xr.open_dataset(file)
+        dataset = xr.open_dataset(file, decode_times=False)
         #data = dataset[var_name][:240,:154,:136].values
         if 'SMIPS' in cubename:
             data = dataset[var_name].values
@@ -181,15 +181,14 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
             print(dateindex, date, file)
             print(datedelta, startbase, startdelta)
 
-
         print('Exporting to netCDF for date: ', date.isoformat())
 
         var = outcube.variables[var_name]
         var[dateindex, :] = datain[:]
         #print(dataset.time.values[dateindex])
-        #if dataset.time.values[dateindex] > 43644:
-        #    print(dataset.time.values[dateindex], date, file)
-        print(dateindex+1)
+        print(dateindex+1, outcube.variables['time'][dateindex])
+        #if outcube.variables['time'][dateindex] > 43644:
+        #    print('BAD')
 
         #print(var[dateindex], datain.data[:])
 
@@ -207,28 +206,51 @@ def aggregate_access_g(year):
     #add_to_netcdf_cube(date=datetime.datetime(2019, 6, 30), cubename=aggregate_file, files=['//OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/2018/ACCESS_G_accum_prcp_fc_2018103112.nc'])
 
 
-def aggregate_smips(update_only=True, start_date=None):
-    aggregate_file = aggregated_smips
+def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=False):
+    if smips:
+        aggregate_file = aggregated_smips
+        path = settings.SMIPS_DEST_PATH
+        end_date = settings.yesterday - datetime.timedelta(days=1)
+        files = settings.smips_filename
+    elif accessg:
+        aggregate_file = aggregated_access_g
+        path = settings.ACCESS_G_PATH
+        end_date = settings.yesterday
+        files = settings.access_g_filename
+    else:
+        return print('Run with smips=True or accessg=True')
+
     if update_only:
         if not start_date:
-            smips = xr.open_dataset(settings.SMIPS_DEST_PATH + aggregate_file)
-            latest = smips.time.values[-1]
-            smips.close()
-            start_date = convert_date(latest)
-        dates = get_dates(start_date=start_date, end_date=settings.yesterday - datetime.timedelta(days=1))
-        files = [settings.SMIPS_DEST_PATH + settings.smips_filename(date) for date in dates]
+            if accessg:
+                nc = xr.open_dataset(path + aggregate_file, decode_times=False)
+                latest = nc.time.values[-1]
+                start = datetime.date(1900, 1, 1)
+                start_date = start + datetime.timedelta(int(latest))
+            elif smips:
+                nc = xr.open_dataset(path + aggregate_file)
+                latest = nc.time.values[-1]
+                start_date = convert_date(latest)
+            nc.close()
+        dates = get_dates(start_date=start_date, end_date=end_date)
+        files = [path + files(date) for date in dates]
 
     else:
-        files= [file for file in glob.glob(settings.SMIPS_DEST_PATH +'*/*.nc')]
+        if smips:
+            files = [file for file in glob.glob(path +'*/*.nc')]
+        elif accessg:
+            files = [file for file in glob.glob(path + '*/*12.nc')]   # there's one file in the access-g directories that's called like cdo.nc and we don't want it
+
     if len(files) <= 0:
-        return print('SMIPS aggregation is up to date')
-    add_to_netcdf_cube(end_date=settings.yesterday, cubename=aggregate_file, files=files)
+        return print('File aggregation is up to date')
+    add_to_netcdf_cube(end_date=end_date, cubename=aggregate_file, files=files)
 
 
 if __name__ == '__main__':
-    #aggregate_smips()
-    aggregate_access_g(2016)
-    aggregate_access_g(2017)
-    aggregate_access_g(2018)
-    aggregate_access_g(2019)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
+    aggregate_netcdf(smips=True)
+    aggregate_netcdf(accessg=True)
+    #aggregate_access_g(2016)
+    #aggregate_access_g(2017)
+    #aggregate_access_g(2018)
+    #aggregate_access_g(2019)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
     # Have aggregated 2016, 2017, 2019

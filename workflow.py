@@ -48,6 +48,9 @@ import file_management
 # 3. Aggregate new access-g and smips files into the big one
 
 # First step
+# 1. Load data -access-g/smips
+# 2. Extract 1 geographical grid point
+# 3. Transform (normalise) SMIPS time series of rainfall on the grid point
 
 
 def transform(data):
@@ -66,7 +69,7 @@ def transform(data):
 def transformation():
     # Load data - access/smips
     # Extract 1 grid point of data # data must be in 1D array
-    date = datetime.date(2019,6,30)  # Use most recent date
+    #coords = (152.9297, )
 
     access_g_file = settings.ACCESS_G_PATH + settings.access_g_filename(create_str_date(date))
     smips_file = settings.smips_filename(create_str_date(date))
@@ -85,6 +88,7 @@ def daily_jobs():
     data_transfer.transfer_files()
     iris_regridding.run_regridding()
     file_management.aggregate_smips()
+    #file_management.aggregate_access_g()
 
 if __name__ == '__main__':
     daily_jobs()
