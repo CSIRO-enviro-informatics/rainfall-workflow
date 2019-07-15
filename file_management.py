@@ -161,8 +161,14 @@ def add_to_netcdf_cube(date, files, cubename, refresh=True):
             datain = np.where(data==9.96921e+36, -9999.0, data)
 
         elif 'ACCESS' in cubename:
-            data = dataset[var_name][:240, :154, :136].values
-            datain = np.where(data==1.0E36, -9999.0, data)
+            if '20181008' in file:  # file with incomplete lead time dimension
+                padded = np.zeros((240, 154, 136))
+                padded[:120, :154, :136] = dataset[var_name][:120, :154, :136].values
+                data = np.where(padded == 0, -9999.0, padded)
+                datain = np.where(data == 1.0E36, -9999.0, data)
+            else:
+                data = dataset[var_name][:240, :154, :136].values
+                datain = np.where(data==1.0E36, -9999.0, data)
 
         str_date = file.rsplit('_', 1)[1].replace('12.nc', "")
         date = datetime.datetime(int(str_date[:4]), int(str_date[4:6]), int(str_date[6:8]), 12)
@@ -198,5 +204,5 @@ def aggregate_smips():
 
 if __name__ == '__main__':
     #aggregate_smips()
-    #aggregate_access_g(2018)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
+    aggregate_access_g(2018)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
     # Have aggregated 2016, 2017, 2019
