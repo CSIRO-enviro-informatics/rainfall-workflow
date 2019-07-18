@@ -87,8 +87,9 @@ def transformation():
 def daily_jobs():
     data_transfer.transfer_files()
     iris_regridding.run_regridding()
-    file_management.aggregate_smips()
-    #file_management.aggregate_access_g()
+    file_management.aggregate_netcdf(smips=True)
+    file_management.aggregate_netcdf(accessg=True)
+    print('All done')
 
 if __name__ == '__main__':
     daily_jobs()

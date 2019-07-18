@@ -94,11 +94,8 @@ def limit_coordinates(netcdf_file_path):
 def transfer_files(start_date=None, end_date=datetime.date.today()):
     my_hostname = 'raijin.nci.org.au'
     my_username = 'aa1582'
-    my_password = getpass()
-
-    # Connection can't find hostkey
-    #cnopts=pysftp.CnOpts()
-    #cnopts.hostkeys = None
+    #my_password = getpass()
+    private_key = '~/.ssh/id_rsa'
 
     if not start_date:
         start_date = get_start_date()
@@ -112,7 +109,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
 
     dates = get_dates(start_date, end_date)
 
-    with pysftp.Connection(host=my_hostname, username=my_username, password=my_password) as sftp:
+    with pysftp.Connection(host=my_hostname, username=my_username, private_key=private_key) as sftp:
         print("Connection succesfully established ... ")
 
         # Switch to a remote directory

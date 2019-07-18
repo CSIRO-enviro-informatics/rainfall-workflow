@@ -197,15 +197,6 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
     return True, True
 
 
-def aggregate_access_g(year):
-    aggregate_file = aggregated_access_g
-    #years = ['2016', '2017', '2018', '2019']
-    #for year in years:
-    files = [filename for filename in glob.glob(settings.ACCESS_G_PATH + str(year) + '/*12.nc')]
-    add_to_netcdf_cube(end_date=settings.yesterday, cubename=aggregate_file, files=files)
-    #add_to_netcdf_cube(date=datetime.datetime(2019, 6, 30), cubename=aggregate_file, files=['//OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/2018/ACCESS_G_accum_prcp_fc_2018103112.nc'])
-
-
 def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=False):
     if smips:
         aggregate_file = aggregated_smips
