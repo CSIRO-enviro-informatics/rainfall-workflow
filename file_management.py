@@ -185,6 +185,8 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
 
         var = outcube.variables[var_name]
         var[dateindex, :] = datain[:]
+        tme = outcube.variables['time']
+        tme[dateindex] = datedelta
         #print(dataset.time.values[dateindex])
         print(dateindex+1, outcube.variables['time'][dateindex])
         #if outcube.variables['time'][dateindex] > 43644:
@@ -240,8 +242,3 @@ def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=Fal
 if __name__ == '__main__':
     aggregate_netcdf(smips=True)
     aggregate_netcdf(accessg=True)
-    #aggregate_access_g(2016)
-    #aggregate_access_g(2017)
-    #aggregate_access_g(2018)
-    #aggregate_access_g(2019)  # will have to re-run later - right now doesn't work because 2018-10-08 file is lead_time-incomplete
-    # Have aggregated 2016, 2017, 2019
