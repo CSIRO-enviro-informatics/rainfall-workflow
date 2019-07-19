@@ -3,3 +3,6 @@ test/
 .idea/
 .ipynb_checkpoints/
 conda_env/
+regridding_examples/
+__pycache__/
+
