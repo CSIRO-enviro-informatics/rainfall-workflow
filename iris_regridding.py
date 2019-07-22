@@ -11,8 +11,7 @@ import iris
 import settings
 import xarray as xr
 import datetime
-import numpy as np
-from data_transfer import create_str_date, get_start_date, get_dates
+from dates import create_str_date, get_dates, get_start_date, convert_date
 
 smips_file = settings.SMIPS_PATH + settings.SMIPS_CONTAINER  # original
 smips_nc = xr.open_dataset(smips_file)
@@ -65,13 +64,6 @@ def regrid(cube, regridder):
     cube.coord('longitude').standard_name = 'longitude'  # necessary to guess the coordinate axis
     cube.coord('latitude').standard_name = 'latitude'
     return regridder(cube)
-
-
-# Because the date from xarray is an np.datetime64 object
-def convert_date(date):
-    timestamp = ((date - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
-    dt_date = datetime.datetime.utcfromtimestamp(timestamp)
-    return dt_date.date()
 
 
 def run_regridding(update_only=True, start_date=False, end_date=False):

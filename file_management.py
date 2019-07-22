@@ -3,8 +3,7 @@ from netCDF4 import Dataset
 import os
 import xarray as xr
 import glob
-from iris_regridding import convert_date
-from data_transfer import create_str_date, get_dates
+from dates import create_str_date, get_dates, convert_date
 import datetime
 import numpy as np
 
@@ -203,12 +202,12 @@ def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=Fal
     if smips:
         aggregate_file = aggregated_smips
         path = settings.SMIPS_DEST_PATH
-        end_date = settings.yesterday - datetime.timedelta(days=1)
+        end_date = settings.yesterday
         files = settings.smips_filename
     elif accessg:
         aggregate_file = aggregated_access_g
         path = settings.ACCESS_G_PATH
-        end_date = settings.yesterday
+        end_date = datetime.datetime.today()
         files = settings.access_g_filename
     else:
         return print('Run with smips=True or accessg=True')

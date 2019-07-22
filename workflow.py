@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import datetime
 import settings
-from data_transfer import create_str_date
+from dates import create_str_date
 
 import data_transfer
 import iris_regridding
@@ -66,23 +66,23 @@ def transform(data):
     return trans_data
 
 
-def transformation():
-    # Load data - access/smips
-    # Extract 1 grid point of data # data must be in 1D array
-    #coords = (152.9297, )
-
-    access_g_file = settings.ACCESS_G_PATH + settings.access_g_filename(create_str_date(date))
-    smips_file = settings.smips_filename(create_str_date(date))
-
-    forecast = xr.open_dataset(access_g_file)
-    observation = xr.open_dataset(smips_file)
-
-    print(forecast.accum_prcp.values)
-    print(observation.blended_precipitation.values)
-
-    # Transform (normalise) a timestep of both observation and forecast data (separately)
-
-    #transform()
+# def transformation():
+#     # Load data - access/smips
+#     # Extract 1 grid point of data # data must be in 1D array
+#     #coords = (152.9297, )
+#
+#     #access_g_file = settings.ACCESS_G_PATH + settings.access_g_filename(create_str_date(date))
+#     #smips_file = settings.smips_filename(create_str_date(date))
+#
+#     forecast = xr.open_dataset(access_g_file)
+#     observation = xr.open_dataset(smips_file)
+#
+#     print(forecast.accum_prcp.values)
+#     print(observation.blended_precipitation.values)
+#
+#     # Transform (normalise) a timestep of both observation and forecast data (separately)
+#
+#     #transform()
 
 def daily_jobs():
     data_transfer.transfer_files()
