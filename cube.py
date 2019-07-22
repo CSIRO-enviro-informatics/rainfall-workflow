@@ -218,11 +218,11 @@ def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=Fal
                 nc = xr.open_dataset(path + aggregate_file, decode_times=False)
                 latest = nc.time.values[-1]
                 start = datetime.date(1900, 1, 1)
-                start_date = start + datetime.timedelta(int(latest))
+                start_date = start + datetime.timedelta(int(latest)) + datetime.timedelta(days=1)
             elif smips:
                 nc = xr.open_dataset(path + aggregate_file)
                 latest = nc.time.values[-1]
-                start_date = convert_date(latest)
+                start_date = convert_date(latest) + datetime.timedelta(days=1)
             nc.close()
         dates = get_dates(start_date=start_date, end_date=end_date)
         files = [path + files(date) for date in dates]
