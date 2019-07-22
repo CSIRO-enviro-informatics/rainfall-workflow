@@ -65,9 +65,9 @@ def transform(data):
     transform.optim_params(data, lcens, True, False)
     trans_data = transform.transform_many(transform.rescale_many(data))
     print(trans_data)
-    print(trans_data.min(), np.min(trans_data), trans_data.max(), np.max(trans_data))
+    print(trans_data.min(), np.amin(trans_data), np.nanmin(trans_data), trans_data.max(), np.amax(trans_data), np.nanmax(trans_data))
     plt.hist(data, bins=50, normed=True, alpha=0.5, label='orig')
-    plt.hist(trans_data, bins=50, normed=True, alpha=0.5, label='trans_orig')
+    plt.hist(trans_data, bins=50, normed=True, alpha=0.5, label='trans_orig', range=(np.nanmin(trans_data), np.nanmax(trans_data)))
     plt.show()
     return trans_data
 
