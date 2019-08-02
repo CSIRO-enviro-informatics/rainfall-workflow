@@ -7,16 +7,21 @@ import settings
 
 def transform(data):
     data = np.double(data) # because it was complaining
+    optim_data = data[np.logical_not(np.isnan(data))]
     lcens = 0.0
-    scale = 5.0/np.max(data)
-
+    scale = 5.0/np.max(optim_data)
     transform = pytrans.PyLogSinh(1.0, 1.0, scale)
 
-    transform.optim_params(data, lcens, True, False)
+    # create a data subset without nans for optim_params
+    optim = transform.optim_params(optim_data, lcens, True, False)
+    print(np.array(optim))
+    # give below function original dataset, with -9999 or lower converted to nans
     trans_data = transform.transform_many(transform.rescale_many(data))
-    print(trans_data)
+    #print(trans_data)
     print(trans_data.min(), np.amin(trans_data), np.nanmin(trans_data), trans_data.max(), np.amax(trans_data), np.nanmax(trans_data))
-    plt.hist(data, bins=50, normed=True, alpha=0.5, label='orig')
+    if np.isnan(trans_data.min()):
+        print(trans_data)
+    plt.hist(data, bins=50, normed=True, alpha=0.5, label='orig', range=(np.nanmin(data), np.nanmax(data)))
     plt.hist(trans_data, bins=50, normed=True, alpha=0.5, label='trans_orig', range=(np.nanmin(trans_data), np.nanmax(trans_data)))
     plt.show()
     return trans_data
@@ -81,6 +86,9 @@ def transformation():
                 forecast_i = 24*day + int(utc_offset)
                 base_grid = forecast['accum_prcp'][:, base_i, lat_i, lon_i].data
                 accum_grid = forecast['accum_prcp'][:, forecast_i, lat_i, lon_i].data
+                base_grid[base_grid <= -9999.0] = np.nan
+                accum_grid[accum_grid <= -9999.0] = np.nan
+
                 forecast_grid = accum_grid - base_grid
                 trans_forecast = transform(forecast_grid)
                 trans_forecasts.append(trans_forecast)
