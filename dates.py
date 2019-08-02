@@ -47,7 +47,7 @@ def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.tod
                 raise ValueError('Dates continue after end date')
 
             # if all the dates are in the span of the current month
-            if (start_date.month == end_date.month) and start_date.year == end_date.year and month == start_date.month:
+            if (start_date.month == end_date.month) and start_date.year == end_date.year and int(month) == start_date.month:
                 month_dates = [year + month + day for day in days[start_date.day - 1:end_date.day - 1]]
             # if the current month is the start month but not the end
             elif int(month) == start_date.month and int(year) == start_date.year:
