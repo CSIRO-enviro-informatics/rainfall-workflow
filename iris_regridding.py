@@ -21,8 +21,13 @@ min_lon = min(smips_nc.lon.values)
 max_lon = max(smips_nc.lon.values)
 
 
-# Extract and treat each day seperately - for the future, and because the SMIPS file is so big anything else would cause memory errors
 def extract_timestep(nc, date):
+    """
+    Extract and treat each day seperately - for the future, and because the SMIPS file is so big anything else would cause memory errors.
+    Keyword arguments:
+        nc -- netCDF file
+        date -- date to extract
+    """
     ncp = nc['Blended Precipitation']
     ncpd = ncp.sel(time=date)
     ncpd.name = 'blended_precipitation'
@@ -30,16 +35,23 @@ def extract_timestep(nc, date):
     return cube
 
 
-# Save the resampled netcdf file containing a day and only blended_precipitation
 def save_timestep(cube, str_date):
+    """
+    Save the regridded netCDF file containing blended_precipitation data for a date.
+    Keyword arguments:
+        cube -- netCDF container open as an xarray Dataset
+        str_date -- string representation of a date in the form YYYYMMDD
+    """
     new_file = settings.SMIPS_DEST_PATH + '{}/SMIPS_blnd_prcp_regrid_{}.nc'.format(str_date[:4], str_date)
     iris.save(cube, new_file)
     print(new_file + ' saved')
 
 
-# Creating the regridder is most resource intensive part, so create only once
 def init_regridder():
-    # Random files to initialise the regridder
+    """
+    Creating the regridder - most resource intensive part, so do only once.
+    Initalised with random SMIPS and ACCESS-G files.
+    """
     target_file = settings.ACCESS_G_PATH + settings.access_g_filename('20190101') # random access-g file
     cube = extract_timestep(smips_nc, datetime.date(2019, 1, 1))  # random smips file
 

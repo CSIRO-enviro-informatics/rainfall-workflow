@@ -11,8 +11,8 @@ from dates import get_dates, get_start_date
 networkPath = settings.ACCESS_G_PATH
 
 
-# Limit coordinates of global netcdf file to Australia
 def limit_coordinates(netcdf_file_path):
+    """Limit coordinates of a global netCDF file to Australia."""
     data = xr.open_mfdataset(netcdf_file_path)
     # aus_data = data.sel(lat=slice(-9.005, -43.735), lon=slice(112.905, 153.995))  # coordinates matching SMIPS
     aus_data = data.sel(lat=slice(-9.140625, -45.0), lon=slice(110.03906, 157.85156)) # coordinates from past bounded access-g data
@@ -20,6 +20,17 @@ def limit_coordinates(netcdf_file_path):
 
 
 def transfer_files(start_date=None, end_date=datetime.date.today()):
+    """
+    Transfer daily ACCESS-G files from NCI to network location.
+        Need an NCI login and private ssh key with NCI - or, password input.
+        If password input, have to run this from the terminal and not with an IDE's "run".
+
+    Keyword arguments:
+        start_date -- starting date for files you'll download
+        end_date -- end date for files you'll download (not inclusive)
+
+    Run without arguments to update - only transfer files newer than the newest file.
+    """
     my_hostname = 'raijin.nci.org.au'
     my_username = 'aa1582'
     #my_password = getpass()
@@ -60,12 +71,6 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
             print('File: ' + new_file_name + ' written')
     # connection closed automatically at the end of the with-block
 
-
-# Look into the files at osm to find which recent haven't been uploaded yet
-
-
 if __name__ == '__main__':
-    #transfer_files()  # Run without args to only get new files
-    transfer_files(start_date=datetime.date(2017,5,17), end_date=datetime.date(2017,5,18))  # Run with start and end date (not inclusive of end)
-    #print(get_dates(get_start_date()))
+    transfer_files()
 

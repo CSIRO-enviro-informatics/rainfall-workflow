@@ -1,13 +1,12 @@
 # Inputs:
 # 	- SMIPS rainfall 1km grid - predictand (DV) - source: CSIRO
-# 	- ACCESS-G or -R 12 km grid - predictor (IV) - source: NCI
-# 		○ Re-gridded to 1 km grid
+# 	- ACCESS-G or -R ~25x39 km grid - predictor (IV) - source: NCI
 #
 # Jobs:
 # 	- Re-grid SMIPS data from 1km grid to ACCESS-G size grid
 #   - Grab the latest matching data ACCESS-G and SMIPS file
 # 	- For each grid point: Create post-processed forecast
-# 		○ Extract symmetric grid point(s) from predictand and predictor
+# 		○ Extract symmetric grid point(s) from predictand and predictor and transform
 # 		○ Model fit/forecast
 # 			§ Transform predictor and predictand time series to normal distributions
 # 			§ RPP-SC - call fit() during training , and forecast() during regular use
@@ -35,19 +34,14 @@ import transform
 # from dojobber import DummyJob
 # from dojobber import RunonlyJob
 
-# Preliminary steps - only need to be checked - should be done on a regular automatic basis?
-# 1. Get latest Access-g files
-# 2. Regrid latest smips files
-# 3. Aggregate new access-g and smips files into the big one
-
-# First step
-# 1. Load data -access-g/smips
-# 2. Extract 1 geographical grid point
-# 3. Transform (normalise) SMIPS time series of rainfall on the grid point
-
-
 
 def daily_jobs():
+    """
+    Preliminary steps - should be done on a regular automatic basis
+    1. Get latest ACCESS-G files from NCI
+    2. Regrid latest SMIPS files
+    3. Aggregate new ACCESS-G and SMIPS files into ACCESS-G.nc and SMIPS.nc respectively
+    """
     data_transfer.transfer_files()
     iris_regridding.run_regridding()
     cube.aggregate_netcdf(smips=True)
