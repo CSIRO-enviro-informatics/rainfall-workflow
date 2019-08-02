@@ -196,16 +196,18 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
     return True, True
 
 
-def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=False):
+def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=False, accessg=False):
     if smips:
         aggregate_file = aggregated_smips
         path = settings.SMIPS_DEST_PATH
-        end_date = settings.yesterday
+        if not end_date:
+            end_date = settings.yesterday
         files = settings.smips_filename
     elif accessg:
         aggregate_file = aggregated_access_g
         path = settings.ACCESS_G_PATH
-        end_date = datetime.date.today()
+        if not end_date:
+            end_date = datetime.date.today()
         files = settings.access_g_filename
     else:
         return print('Run with smips=True or accessg=True')
@@ -245,4 +247,4 @@ def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=Fal
 
 if __name__ == '__main__':
     aggregate_netcdf(smips=True)
-    aggregate_netcdf(accessg=True)
+    aggregate_netcdf(accessg=True), #start_date=datetime.date(2017, 5, 17), end_date=datetime.date(2017, 5, 18))
