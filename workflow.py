@@ -47,13 +47,12 @@ import transform
 
 
 
-
 def daily_jobs():
     data_transfer.transfer_files()
     iris_regridding.run_regridding()
     cube.aggregate_netcdf(smips=True)
     cube.aggregate_netcdf(accessg=True)
-    print('All done')
+    print('Daily jobs done')
 
 if __name__ == '__main__':
     daily_jobs()

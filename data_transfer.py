@@ -33,7 +33,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
 
     if start_date >= today or (start_date == yesterday and datetime.datetime.now().hour < 8):
         # The previous day's 1200 file is uploaded to NCI at ~7.30am each day
-        return (print('Files are already up to date'))
+        return (print('ACCESS-G downloaded files are already up to date'))
 
     dates = get_dates(start_date, end_date)
 
@@ -65,7 +65,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
 
 
 if __name__ == '__main__':
-    transfer_files()  # Run without args to only get new files
-    #transfer_files(start_date=datetime.date(2017,11,25), end_date=datetime.date(2017,11,26))  # Run with start and end date (not inclusive of end)
+    #transfer_files()  # Run without args to only get new files
+    transfer_files(start_date=datetime.date(2017,5,17), end_date=datetime.date(2017,5,18))  # Run with start and end date (not inclusive of end)
     #print(get_dates(get_start_date()))
 
