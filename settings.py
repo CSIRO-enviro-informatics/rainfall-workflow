@@ -21,10 +21,10 @@ ACCESS_HOUR = '1200'
 ACCESS_HR = ACCESS_HOUR[:2]
 
 #OUTCUBEPATH =
-SMIPS_STARTDATE = datetime.datetime(2015, 11, 20)
-ACCESS_STARTDATE = datetime.datetime(2016, 3, 16)
+SMIPS_STARTDATE = datetime.date(2015, 11, 20)
+ACCESS_STARTDATE = datetime.date(2016, 3, 16)
 
-yesterday = datetime.datetime.today() - datetime.timedelta(days=1)
+yesterday = datetime.date.today() - datetime.timedelta(days=1)
 
 def access_g_filename(str_date):
     return str_date[:4] + '/ACCESS_G_accum_prcp_fc_' + str_date + ACCESS_HR + '.nc'

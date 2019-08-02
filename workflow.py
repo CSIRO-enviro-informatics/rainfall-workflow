@@ -146,5 +146,5 @@ def daily_jobs():
     print('All done')
 
 if __name__ == '__main__':
-    #daily_jobs()
+    daily_jobs()
     transformation()

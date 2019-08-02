@@ -3,7 +3,7 @@ from netCDF4 import Dataset
 import os
 import xarray as xr
 import glob
-from dates import create_str_date, get_dates, convert_date
+from dates import get_dates, convert_date
 import datetime
 import numpy as np
 
@@ -118,11 +118,9 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
         cubepathname = os.path.join(settings.ACCESS_G_PATH,cubename)
         start_date = settings.ACCESS_STARTDATE
     localrefresh = refresh
-    cube_new = False
     if not os.path.exists(cubepathname):
         print ('NetCDF Cube doesn\'t exist at ', cubepathname)
         create_cube(cubepathname,start_date,end_date)
-        cube_new = True
 
     outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
@@ -132,7 +130,7 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
         return False, False
     delta = datetime.timedelta(int(time[0][0]))
     startdelta = delta.days
-    startbase = datetime.datetime(1900, 1, 1)
+    startbase = datetime.date(1900, 1, 1)
     datedelta = (end_date - startbase).days
     start = startbase + delta
 
@@ -174,7 +172,7 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
         else:
             str_date = file.rsplit('_', 1)[1].replace('.nc', "")
         date = datetime.datetime(int(str_date[:4]), int(str_date[4:6]), int(str_date[6:8]), 12)
-        datedelta = (date - startbase).days
+        datedelta = (date - datetime.datetime(startbase.year, startbase.month, startbase.day)).days
         dateindex = datedelta - startdelta
         if dateindex >= 1203 or not(1 <= dateindex <= 1202):
             print(dateindex, date, file)
@@ -207,7 +205,7 @@ def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=Fal
     elif accessg:
         aggregate_file = aggregated_access_g
         path = settings.ACCESS_G_PATH
-        end_date = datetime.datetime.today()
+        end_date = datetime.date.today()
         files = settings.access_g_filename
     else:
         return print('Run with smips=True or accessg=True')
@@ -219,11 +217,18 @@ def aggregate_netcdf(update_only=True, start_date=None, smips=False, accessg=Fal
                 latest = nc.time.values[-1]
                 start = datetime.date(1900, 1, 1)
                 start_date = start + datetime.timedelta(int(latest)) + datetime.timedelta(days=1)
+                nc.close()
+                if start_date >= settings.yesterday:
+                    return print('SMIPS aggregation is already up to date')
+
             elif smips:
                 nc = xr.open_dataset(path + aggregate_file)
                 latest = nc.time.values[-1]
                 start_date = convert_date(latest) + datetime.timedelta(days=1)
-            nc.close()
+                nc.close()
+                if start_date >= settings.yesterday:
+                    return print('ACCESS-G aggregation is already up to date')
+
         dates = get_dates(start_date=start_date, end_date=end_date)
         files = [path + files(date) for date in dates]
 

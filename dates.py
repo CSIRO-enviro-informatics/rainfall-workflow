@@ -15,13 +15,17 @@ def create_str_date(date):
 
 # Returns str dates from a start to end date (not inclusive of end)
 def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.today()):
+    if end_date < start_date:
+        raise ValueError('End date cannot be before start date, start date:' + str(start_date) + ', end date:' + str(end_date))
+    if end_date == start_date:
+        raise ValueError('End date is same as start date')
+    if start_date >= datetime.date.today():
+        raise ValueError('Cannot have start date on or after today')
     years = [str(x) for x in range(start_date.year, end_date.year+1)]
 
     num_months = [x for x in range(1,13)]
     num_days = [x for x in range(1,32)]
 
-    #now = datetime.datetime.now()
-    #now = datetime.datetime(2019, 1, 4, 12, 00)  # test
     if start_date.year == end_date.year:
         months = [str(x) for x in num_months if start_date.month <= x <= end_date.month]
     else:
@@ -36,31 +40,34 @@ def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.tod
     dates = []
     for year in years:
         for month in months:
-            if int(month) == start_date.month and end_date.month and start_date.year == end_date.year:
-                month_dates = [year + month + day for day in days[start_date.day-1:end_date.day-1]]
+            month_dates = []
+            if year == start_date.year and month < start_date.month:
+                raise ValueError('Dates start before start date')
+            if year == end_date.year and month > end_date.month:
+                raise ValueError('Dates continue after end date')
 
+            # if all the dates are in the span of the current month
+            if (start_date.month == end_date.month) and start_date.year == end_date.year and month == start_date.month:
+                month_dates = [year + month + day for day in days[start_date.day - 1:end_date.day - 1]]
+            # if the current month is the start month but not the end
             elif int(month) == start_date.month and int(year) == start_date.year:
+                # depending on how many days are in the month
                 if month == '02':
-                    month_dates = [year + month + day for day in days[start_date.day-1:28]]
+                    month_dates = [year + month + day for day in days[start_date.day - 1:28]]
                 elif month in ['04', '06', '09', '11']:
-                    month_dates = [year + month + day for day in days[start_date.day-1:30]]
+                    month_dates = [year + month + day for day in days[start_date.day - 1:30]]
                 else:
-                    month_dates = [year + month + day for day in days[start_date.day-1:31]]
+                    month_dates = [year + month + day for day in days[start_date.day - 1:31]]
 
-            elif int(month) == end_date.month and int(year) == end_date.year:
-                month_dates = [year + month + day for day in days[:end_date.day-1]]
+            # if the current month is the end month
+            elif (int(month) == end_date.month) and (int(year) == end_date.year):
+                month_dates = [year + month + day for day in days[:end_date.day - 1]]
 
-            elif year==end_date.year and month < end_date.month:
-                get_full_month(year, month, days)
-
-            elif year==start_date.year and month > start_date.month:
-                get_full_month(year, month, days)
-
+            # if any other condition
             else:
-                month_dates = []
-
+                month_dates = get_full_month(year, month, days)
             dates.extend(month_dates)
-    print(dates)
+        print(dates)
     return dates
 
 
