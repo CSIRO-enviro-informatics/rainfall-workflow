@@ -14,8 +14,15 @@ smips_name = 'SMIPS'
 access_name = 'ACCESS'
 
 
-def create_cube(cubepathname, startdate, enddate):#, description):
-    #first check output file exits and if so delete
+def create_cube(cubepathname, startdate, enddate):
+    """
+    Creates a netCDF cube for SMIPS or ACCESS-G aggregated data.
+    Will delete a cube corresponding to cubepathname if it exists.
+    Parameters:
+        cubepathname -- indicates if 'SMIPS' or 'ACCESS' - name must contain either of these strings
+        startdate -- start date of data
+        enddate -- end date of data
+    """
     if os.path.exists(cubepathname):
         os.remove(cubepathname)
     outcube = Dataset(cubepathname, mode='w', format='NETCDF4')
@@ -104,9 +111,6 @@ def create_cube(cubepathname, startdate, enddate):#, description):
 
     outcube.close()
 
-    return True
-
-
 
 def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
     if 'SMIPS' in cubename:
@@ -186,9 +190,6 @@ def add_to_netcdf_cube(end_date, files, cubename, refresh=True):
         tme[dateindex] = datedelta
         #print(dataset.time.values[dateindex])
         print(dateindex+1, outcube.variables['time'][dateindex])
-        #if outcube.variables['time'][dateindex] > 43644:
-        #    print('BAD')
-
         #print(var[dateindex], datain.data[:])
 
     outcube.close()
@@ -238,7 +239,7 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
         if smips:
             files = [file for file in glob.glob(path +'*/*.nc')]
         elif accessg:
-            files = [file for file in glob.glob(path + '*/*12.nc')]   # there's one file in the access-g directories that's called like cdo.nc and we don't want it
+            files = [file for file in glob.glob(path + '*/*12.nc')]   # there's one file in the access-g directories that's called cdo.nc
 
     if len(files) <= 0:
         return print('File aggregation is up to date')

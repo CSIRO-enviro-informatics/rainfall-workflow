@@ -7,20 +7,28 @@ import settings
 
 
 def transform(data):
-    """ Transform (normalise) a 1D time series representing a geographical grid point. """
-    data = np.double(data) # because it was complaining
+    """
+    Transform (normalise) a 1D time series representing a geographical grid point.
+    Parameters:
+        data -- 1D time series with valid float data and possible nans
+    Return: transformed data
+    """
+
+    data = np.double(data)
     optim_data = data[np.logical_not(np.isnan(data))]
     lcens = 0.0
     scale = 5.0/np.max(optim_data)
     transform = pytrans.PyLogSinh(1.0, 1.0, scale)
 
-    # create a data subset without nans for optim_params
+    # Create a data subset without nans for optim_params
     optim = transform.optim_params(optim_data, lcens, True, False)
     print(np.array(optim))
     trans_data = transform.transform_many(transform.rescale_many(data))
     #print(trans_data.min(), np.amin(trans_data), np.nanmin(trans_data), trans_data.max(), np.amax(trans_data), np.nanmax(trans_data))
     if np.isnan(trans_data.min()):
         print(trans_data)
+
+    # Plot histograms of the original and transformed data
     plt.hist(data, bins=50, normed=True, alpha=0.5, label='orig', range=(np.nanmin(data), np.nanmax(data)))
     plt.hist(trans_data, bins=50, normed=True, alpha=0.5, label='trans_orig', range=(np.nanmin(trans_data), np.nanmax(trans_data)))
     plt.show()

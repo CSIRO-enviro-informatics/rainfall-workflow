@@ -2,19 +2,18 @@ import datetime
 import glob
 import os
 import numpy as np
-#from data_transfer import networkPath
 
 
-# Converts a datetime.date object to str in the form DDMMYYYY
 def create_str_date(date):
+    """ Converts a datetime.date object to str in the form DDMMYYYY"""
     str_year = str(date.year)
-    str_month = add_missing_zeros([str(date.month)])[0]
-    str_day = add_missing_zeros([str(date.day)])[0]
+    str_month = pad_with_zeros([str(date.month)])[0]
+    str_day = pad_with_zeros([str(date.day)])[0]
     return str_year + str_month + str_day
 
 
-# Returns str dates from a start to end date (not inclusive of end)
 def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.today()):
+    """ Returns an array of str dates from a start to end date (not inclusive of end)"""
     if end_date < start_date:
         raise ValueError('End date cannot be before start date, start date:' + str(start_date) + ', end date:' + str(end_date))
     if end_date == start_date:
@@ -31,11 +30,13 @@ def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.tod
     else:
         months = [str(x) for x in num_months if start_date.month <= x]
         months.extend([str(x) for x in num_months if x <= end_date.month])
-    months = add_missing_zeros(months)
+    months = pad_with_zeros(months)
+    #print(months)
 
     # Not equal to today as won't have data that recent.
     days = [str(x) for x in num_days]
-    days = add_missing_zeros(days)
+    days = pad_with_zeros(days)
+    #print(days)
 
     dates = []
     for year in years:
@@ -71,19 +72,31 @@ def get_dates(start_date=datetime.date(2019, 1, 1), end_date = datetime.date.tod
     return dates
 
 
-# Returns str dates in a month
 def get_full_month(year, month, days):
+    """
+    Returns an array of str dates in a month
+    Parameters:
+        year -- year string
+        month -- month string (padded with zeros)
+        days -- string array of days in the month (padded with zeros)
+    Return: str array of YYYYMMDD dates in a month
+    """
     if month == '02':
         month_dates = [year + month + day for day in days[:28]]
     elif month in ['04', '06', '09', '11']:
         month_dates = [year + month + day for day in days[:30]]
     else:
         month_dates = [year + month + day for day in days[:31]]
+    #print(month_dates)
     return month_dates
 
 
-# For a string representation of days, months, adds 0 to make int double digit if it's single
-def add_missing_zeros(str_array):
+def pad_with_zeros(str_array):
+    """" Makes string reprentations of ints double digit if they're single digit by adding a leading zero.
+    Parameters:
+        str_array -- array of strings usually representing days or months
+    Return: padded str_array
+    """
     return [x if len(x) == 2 else '0' + x for x in str_array]
 
 
@@ -108,8 +121,12 @@ def get_start_date(file_path):  # Adapted to be usable for getting regridded smi
     return datetime.date(start_year, start_month, start_day) + datetime.timedelta(days=1)
 
 
-# Converts np.datetime64 object to datetime.date object
 def convert_date(date):
+    """ Converts np.datetime64 object to datetime.date object"""
     timestamp = ((date - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
     dt_date = datetime.datetime.utcfromtimestamp(timestamp)
     return dt_date.date()
+
+
+#if __name__ == '__main__':
+#    get_dates(start_date=datetime.date(2019, 2, 1))

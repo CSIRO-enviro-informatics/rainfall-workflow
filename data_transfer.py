@@ -25,7 +25,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
         Need an NCI login and private ssh key with NCI - or, password input.
         If password input, have to run this from the terminal and not with an IDE's "run".
 
-    Keyword arguments:
+    Parameters:
         start_date -- starting date for files you'll download
         end_date -- end date for files you'll download (not inclusive)
 
@@ -57,7 +57,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
         nc_filename = 'accum_prcp.nc'
         hour = settings.ACCESS_HOUR
 
-        localPath = 'test/'
+        localPath = 'temp/'
 
         for date in dates:
             new_file_name = settings.access_g_filename(date)

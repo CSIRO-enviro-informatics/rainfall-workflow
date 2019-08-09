@@ -29,11 +29,6 @@ import iris_regridding
 import cube
 import transform
 
-# import dojobber
-# from dojobber import Job
-# from dojobber import DummyJob
-# from dojobber import RunonlyJob
-
 
 def daily_jobs():
     """
@@ -48,6 +43,28 @@ def daily_jobs():
     cube.aggregate_netcdf(accessg=True)
     print('Daily jobs done')
 
+
+def data_processing():
+    """
+    For each grid point: Create post-processed forecast
+    1. Extract symmetric grid point(s) from observed and forecast and transform
+    2. Model fit/forecast
+        - Transform predictor and predictand time series to normal distributions
+        - TODO: RPP-SC - call fit() during training , and forecast() during regular use
+            - Model parameters from fit() are saved and loaded to forecast()
+        - TODO: Output: post-processed 7 day time series forecast for grid point.
+            - Dimensions: time (1), lead time (7), ensemble member (1000)
+    """
+    transform.transformation()
+
+
+def reassemble():
+    """
+    Reassemble grid: For each grid point: "shuffle" to restore spatial correlations
+    Output: shuffled 7 day forecast for grid point
+    """
+    print('todo')
+
 if __name__ == '__main__':
     daily_jobs()
-    transform.transformation()
+    data_processing()

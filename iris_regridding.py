@@ -1,12 +1,7 @@
-	# 1. Grab the layer (2D array representing one time step) from the ACCESS-G container
-	# 	○ One timestep at a time because this'll need to happen in the future when daily data is coming in.
-    #   - and because we need to get a smaller container for iris
-	# 2. Resample it (in Python if you can)
-	# 	○ Using Iris, (example code in regrid_silo_to_era5_grid.py)
-	# 3. Push it into a new NetCDF container (code in matt_resampling)
-	# 4. Drill the container to get your access-g timeseries for each pixel (grid centroid)
-	# 5. Store the time series in fluxDB
+"""
 
+
+"""
 import iris
 import settings
 import xarray as xr
@@ -24,7 +19,7 @@ max_lon = max(smips_nc.lon.values)
 def extract_timestep(nc, date):
     """
     Extract and treat each day seperately - for the future, and because the SMIPS file is so big anything else would cause memory errors.
-    Keyword arguments:
+    Parameters:
         nc -- netCDF file
         date -- date to extract
     """
@@ -38,7 +33,7 @@ def extract_timestep(nc, date):
 def save_timestep(cube, str_date):
     """
     Save the regridded netCDF file containing blended_precipitation data for a date.
-    Keyword arguments:
+    Parameters:
         cube -- netCDF container open as an xarray Dataset
         str_date -- string representation of a date in the form YYYYMMDD
     """
@@ -69,8 +64,8 @@ def init_regridder():
     return regridder
 
 
-# Resample SMIPS grids to same shape as ACCESS-G
 def regrid(cube, regridder):
+    """ Regrid a SMIPS cube"""
     cube.coord('longitude').guess_bounds()
     cube.coord('latitude').guess_bounds()
     cube.coord('longitude').standard_name = 'longitude'  # necessary to guess the coordinate axis
@@ -79,6 +74,14 @@ def regrid(cube, regridder):
 
 
 def run_regridding(update_only=True, start_date=False, end_date=False):
+    """
+    Re-sample SMIPS geographic grids to match ACCESS-G's.
+    Parameters:
+        update_only -- if true, only run for new or start_date -> end_date inclusive files. else, run for all files
+        start_date -- file date to start regridding
+        end_date -- file date to end regridding (non inclusive). on any day, can only be as recent as yesterday
+    """
+
     regridder = init_regridder()
     if not update_only:
         for date in smips_nc.time:
@@ -105,6 +108,4 @@ def run_regridding(update_only=True, start_date=False, end_date=False):
             save_timestep(regridded, str_date)  # save to disk
 
 if __name__ == '__main__':
-    #run_regridding(update_only=False)  # regrid all smips days
-    #run_regridding(start_date=datetime.date(2019, 1, 2), end_date=datetime.date(2019, 1, 3))  # only regrid new
     run_regridding()
