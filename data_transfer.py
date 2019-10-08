@@ -32,7 +32,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
     Run without arguments to update - only transfer files newer than the newest file.
     """
     my_hostname = 'raijin.nci.org.au'
-    my_username = 'aa1582'
+    my_username = 'ads548'
     #my_password = getpass()
     private_key = '~/.ssh/id_rsa'
 

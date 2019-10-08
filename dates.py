@@ -102,8 +102,8 @@ def pad_with_zeros(str_array):
 
 # Takes a network path, returns the date one day after the modification of the newest file
 def get_start_date(file_path):  # Adapted to be usable for getting regridded smips files
+
     list_of_files = glob.glob(file_path + '2019/*.nc')
-    #print(networkPath, list_of_files)
     latest_file = max(list_of_files, key=os.path.getctime)
     #print(latest_file)
     latest_file = latest_file.rsplit('_')[-1]

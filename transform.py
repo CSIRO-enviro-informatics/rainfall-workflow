@@ -1,10 +1,14 @@
+from datetime import date
+
 import matplotlib.pyplot as plt
 import numpy as np
-from netCDF4 import Dataset
+import scipy.stats as stats
+import xarray as xr
 from timezonefinder import TimezoneFinder
 import pytrans
 import settings
-
+import dateutil.parser
+from dateutil.relativedelta import relativedelta
 
 def transform(data):
     """
@@ -21,21 +25,100 @@ def transform(data):
     transform = pytrans.PyLogSinh(1.0, 1.0, scale)
 
     # Create a data subset without nans for optim_params
-    optim = transform.optim_params(optim_data, lcens, True, False)
-    print(np.array(optim))
+    optim = transform.optim_params(optim_data, lcens, True, True)
     trans_data = transform.transform_many(transform.rescale_many(data))
+
     #print(trans_data.min(), np.amin(trans_data), np.nanmin(trans_data), trans_data.max(), np.amax(trans_data), np.nanmax(trans_data))
     if np.isnan(trans_data.min()):
         print(trans_data)
 
     # Plot histograms of the original and transformed data
-    plt.hist(data, bins=50, normed=True, alpha=0.5, label='orig', range=(np.nanmin(data), np.nanmax(data)))
-    plt.hist(trans_data, bins=50, normed=True, alpha=0.5, label='trans_orig', range=(np.nanmin(trans_data), np.nanmax(trans_data)))
-    plt.show()
+    # plt.hist(data, bins=50, density=True, alpha=0.5, label='orig', range=(np.nanmin(data), np.nanmax(data)))
+    # plt.hist(trans_data, bins=50, density=True, alpha=0.5, label='trans_orig', range=(np.nanmin(trans_data), np.nanmax(trans_data)))
+    # plt.show()
     return trans_data
 
 
-def transformation():
+def extract_fit_data(lat, lon, start_date, end_date):
+
+    access_g_file = settings.ACCESS_G_AGG
+    smips_file = settings.SMIPS_AGG
+
+    observed = xr.open_dataset(smips_file, decode_times=False)
+    forecast = xr.open_dataset(access_g_file, decode_times=False)
+
+    # need to get some extra days of obs to account for lead time
+    sel_date_deltas = []
+    cdate = start_date
+    while cdate <= (end_date + relativedelta(days=15)):
+        sel_date_deltas.append((cdate - date(1900,1,1)).days)
+        cdate += relativedelta(days=1)
+
+    observed = observed.sel(lat=lat, lon=lon, method='nearest')
+    observed = observed.sel(time=sel_date_deltas)
+    observed_values = observed['blended_precipitation'].values
+
+    sel_date_deltas = []
+    cdate = start_date
+    while cdate <= end_date:
+        sel_date_deltas.append((cdate - date(1900,1,1)).days)
+        cdate += relativedelta(days=1)
+    num_forecasts = len(sel_date_deltas)
+
+    forecast = forecast.sel(lat=lat, lon=lon, method='nearest')
+    forecast = forecast.sel(time=sel_date_deltas)
+    forecast_values = forecast['accum_prcp'].values
+
+    # find the time zone of SMIPS grid point to line up SMIPS data with ACCESS-G data
+    tf = TimezoneFinder(in_memory=True)
+    timezone = tf.timezone_at(lng=lon, lat=lat)
+
+
+    if ('Brisbane' or 'Lindeman') in timezone:
+        utc_offset = 10
+    elif 'Melbourne' in timezone:
+        utc_offset = 10
+    elif 'Adelaide' in timezone:
+        utc_offset = 9.5
+    elif 'Darwin' in timezone:
+        utc_offset = 9.5
+    elif 'Hobart' in timezone:
+        utc_offset = 10
+    elif ('Eucla' or 'Perth') in timezone:
+        utc_offset = 8
+    elif 'Sydney' in timezone:
+        utc_offset = 10
+    else:
+        print('Unknown timezone?')
+    print('Timezone found')
+
+    fit_ptor_data = np.empty((num_forecasts, 9))
+    fit_ptand_data = np.empty((num_forecasts, 9))
+
+    for day in range(9):
+        base_i = 24*day + int(utc_offset)  # day start
+        forecast_i = base_i + 24  # day end
+
+        print(day, base_i, forecast_i)
+
+        ### WARNING: TO DO: DOUBLE-CHECK ALIGNMENT OF ACCESS-G AND SMIPS
+        fc = forecast_values[:, forecast_i] - forecast_values[:, base_i]
+        obs = observed_values[(day+2):(day+2+num_forecasts)]
+
+        print(stats.spearmanr(fc, obs, nan_policy='omit')[0])
+
+        fit_ptor_data[:, day] = fc
+        fit_ptand_data[:, day] = obs
+
+    res = {}
+    res['ptor'] = fit_ptor_data
+    res['ptand'] = fit_ptand_data
+
+    return res
+
+
+
+def transformation(lat, lon):
     """
     # Extract geographical grid point timeseries of SMIPS and ACCESS-G data and transform it.
     SMIPS: just take the entire time series
@@ -44,14 +127,19 @@ def transformation():
     access_g_file = settings.ACCESS_G_AGG
     smips_file = settings.SMIPS_AGG
 
-    observed = Dataset(smips_file)
-    forecast = Dataset(access_g_file)
+    observed = xr.open_dataset(smips_file, decode_times=False)
+    forecast = xr.open_dataset(access_g_file, decode_times=False)
 
+    print(observed['time'])
+    print(forecast['time'])
+
+    exit()
 
     for lat_i in range(observed['lat'].size):
         for lon_i in range(observed['lon'].size):
-            lat = observed['lat'][lat_i].data
-            lon = observed['lon'][lon_i].data
+
+            lat = float(observed['lat'][lat_i].data)
+            lon = float(observed['lon'][lon_i].data)
 
             observed_grid = observed['blended_precipitation'][:, lat_i, lon_i].data
             #check if there's no data. if so, try next point
@@ -63,6 +151,8 @@ def transformation():
             # find the time zone of SMIPS grid point to line up SMIPS data with ACCESS-G data
             tf = TimezoneFinder(in_memory=True)
             timezone = tf.timezone_at(lng=lon, lat=lat)
+
+
             if ('Brisbane' or 'Lindeman') in timezone:
                 utc_offset = 10
             elif 'Melbourne' in timezone:
