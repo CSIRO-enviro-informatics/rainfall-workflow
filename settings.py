@@ -13,6 +13,8 @@ else:  # Windows
     SMIPS_PATH = '//osm-12-cdc.it.csiro.au/OSM_CBR_LW_SATSOILMOIST_processed/SMIPSv0.5/thredds/public/SMIPS/'
     #SMIPS_PATH = '\\\\osm-12-cdc.it.csiro.au\\OSM_CBR_LW_SATSOILMOIST_processed\\SMIPSv0.5\\thredds\\public\\SMIPS\\'
 
+PARAMS_PATH = 'test/params/'
+PARAMS_GRIDS_PATH = PARAMS_PATH + 'grids/'
 
 SMIPS_CONTAINER = 'SMIPSv0.5.nc'  # name of container in SMIPS_PATH
 TEST_PATH = 'temp/'  # local directory for temporary file saving - needs cleaning out
@@ -34,3 +36,7 @@ def access_g_filename(str_date):
 # combine with SMIPS_DEST_PATH for a specific file path
 def smips_filename(str_date):
     return str_date[:4] + '/SMIPS_blnd_prcp_regrid_'+ str_date +'.nc'
+
+# combine with PARAMS_GRIDS_PATH for a specific file path
+def params_filename(lat, lon):
+    return 'params_' + str(lat) +'_' + str(lon) + '.nc'

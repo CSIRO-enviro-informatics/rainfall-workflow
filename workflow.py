@@ -34,6 +34,7 @@ import iris_regridding
 import cube
 import transform
 import bjpmodel
+from cube import add_to_netcdf_cube
 
 import settings
 
@@ -84,8 +85,11 @@ def data_processing(lat, lon):
         mu, cov = bjp_model.sample(fdata, [10, 10])
         # Save mu, cov, and transformation parameters to netcdf file for that grid point
         # Can edit functions in cube.py to accommodate this new kind of file
+        normal_params = np.concatenate((mu, np.asarray(cov)), axis=1)
+        transformed_params = []
+        add_to_netcdf_cube(settings.params_filename(lat, lon), normal_params[:1000], transformed_params, lt)
 
-        print('lead time', lt, mu.shape, cov.shape)
+        #print('lead time', lt, mu.shape, cov.shape, mu[0], np.asarray(cov[0]))
 
 
 
