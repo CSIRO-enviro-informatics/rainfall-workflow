@@ -24,11 +24,18 @@ import argparse
 import logging
 import os
 import sys
+from datetime import date
+
+import numpy as np
+import matplotlib.pyplot as plt
+
 import data_transfer
 import iris_regridding
 import cube
 import transform
+import bjpmodel
 
+import settings
 
 def daily_jobs():
     """
@@ -44,7 +51,7 @@ def daily_jobs():
     print('Daily jobs done')
 
 
-def data_processing():
+def data_processing(lat, lon):
     """
     For each grid point: Create post-processed forecast
     1. Extract symmetric grid point(s) from observed and forecast and transform
@@ -55,7 +62,31 @@ def data_processing():
         - TODO: Output: post-processed 7 day time series forecast for grid point.
             - Dimensions: time (1), lead time (7), ensemble member (1000)
     """
-    transform.transformation()
+
+
+
+    start_date = settings.ACCESS_STARTDATE
+    end_date = date(2019, 8, 1)
+    fit_data = transform.extract_fit_data(lat, lon, start_date, end_date)
+
+    bjp_model = bjpmodel.BjpModel(2, burn=1000, chainlength=3000, seed='random')
+
+    for lt in range(9):
+
+        fdata = np.array([fit_data['ptor'][:, lt], fit_data['ptand'][:, lt] ], order='C')
+
+        # print(fdata)
+        # plt.hist(fdata[0,:], alpha=0.5, label='accessg')
+        # plt.hist(fdata[1,:], alpha=0.5, label='smips')
+        # plt.legend(loc='best')
+        # plt.show()
+
+        mu, cov = bjp_model.sample(fdata, [10, 10])
+        # Save mu, cov, and transformation parameters to netcdf file for that grid point
+        # Can edit functions in cube.py to accommodate this new kind of file
+
+        print('lead time', lt, mu.shape, cov.shape)
+
 
 
 def reassemble():
@@ -66,5 +97,5 @@ def reassemble():
     print('todo')
 
 if __name__ == '__main__':
-    daily_jobs()
-    data_processing()
+    #daily_jobs()
+    data_processing(-17.5, 142.0)

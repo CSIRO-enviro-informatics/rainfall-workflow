@@ -25,6 +25,8 @@ ACCESS_STARTDATE = datetime.date(2016, 3, 16)  # access-g data is available from
 
 yesterday = datetime.date.today() - datetime.timedelta(days=1)
 
+ACCESS_G_NUM_LEAD_DAYS = 10
+
 # combine with ACCESS_G_PATH for a specific file path
 def access_g_filename(str_date):
     return str_date[:4] + '/ACCESS_G_accum_prcp_fc_' + str_date + ACCESS_HR + '.nc'
