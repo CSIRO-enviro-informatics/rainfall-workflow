@@ -73,6 +73,9 @@ def extract_fit_data(lat, lon, start_date, end_date):
     tf = TimezoneFinder(in_memory=True)
     timezone = tf.timezone_at(lng=lon, lat=lat)
 
+    if not timezone: # timezone wasn't found, probably because the location is over water and doesn't have one
+        print("Timezone wasn't found")
+        return 'Location over water'
 
     if ('Brisbane' or 'Lindeman') in timezone:
         utc_offset = 10
@@ -84,12 +87,12 @@ def extract_fit_data(lat, lon, start_date, end_date):
         utc_offset = 9.5
     elif 'Hobart' in timezone:
         utc_offset = 10
-    elif ('Eucla' or 'Perth') in timezone:
+    elif 'Eucla' in timezone or 'Perth' in timezone:
         utc_offset = 8
     elif 'Sydney' in timezone:
         utc_offset = 10
     else:
-        print('Unknown timezone?')
+        print('Unknown timezone?', timezone)
     print('Timezone found')
 
     fit_ptor_data = np.empty((num_forecasts, 9))
@@ -105,7 +108,7 @@ def extract_fit_data(lat, lon, start_date, end_date):
         fc = forecast_values[:, forecast_i] - forecast_values[:, base_i]
         obs = observed_values[(day+2):(day+2+num_forecasts)]
 
-        print(stats.spearmanr(fc, obs, nan_policy='omit')[0])
+        #print(stats.spearmanr(fc, obs, nan_policy='omit')[0]) # breaks if data is nan
 
         fit_ptor_data[:, day] = fc
         fit_ptand_data[:, day] = obs

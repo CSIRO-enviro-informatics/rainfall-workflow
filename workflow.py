@@ -34,7 +34,8 @@ import iris_regridding
 import cube
 import transform
 import bjpmodel
-from cube import add_to_netcdf_cube
+from cube import add_to_netcdf_cube, aggregate_netcdf
+import xarray as xr
 
 import settings
 
@@ -64,11 +65,13 @@ def data_processing(lat, lon):
             - Dimensions: time (1), lead time (7), ensemble member (1000)
     """
 
-
-
     start_date = settings.ACCESS_STARTDATE
     end_date = date(2019, 8, 1)
     fit_data = transform.extract_fit_data(lat, lon, start_date, end_date)
+
+   # Don't process the data if a timezone wasn't found because it's in the ocean
+    if fit_data == 'Location over water':
+        return
 
     bjp_model = bjpmodel.BjpModel(2, burn=1000, chainlength=3000, seed='random')
 
@@ -100,6 +103,23 @@ def reassemble():
     """
     print('todo')
 
+
+def get_lat_lon_values():
+    refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
+    return refcube.lat.values, refcube.lon.values
+
+
+def create_grid_param_files():
+    lats, lons = get_lat_lon_values()
+    #np.random.seed(50)
+    #lat_sample = np.random.choice(lat, y)
+    #lon_sample = np.random.choice(lon, y)
+    for lat in lats:
+        for lon in lons:
+            data_processing(lat, lon)
+
+
 if __name__ == '__main__':
     #daily_jobs()
-    data_processing(-17.5, 142.0)
+    create_grid_param_files()
+    aggregate_netcdf(params=True)

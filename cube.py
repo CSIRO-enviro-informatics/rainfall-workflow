@@ -9,7 +9,7 @@ import numpy as np
 
 aggregated_smips = 'SMIPS.nc'
 aggregated_access_g = 'ACCESS-G.nc'
-aggregated_params = 'PARAMS.nc'
+aggregated_params = 'PARAMS_aggregated.nc'
 
 smips_name = 'SMIPS'
 access_name = 'ACCESS'
@@ -113,7 +113,7 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             xlon[:] = refcube.lon.values
             ylat[:] = refcube.lat.values
 
-    elif 'params' in cubepathname:
+    elif 'PARAMS' in cubepathname:
         # create cube for grid parameters
         # also check paramaters if you're creating a single-grid cube or a whole-grid cube for aggregation
 
@@ -220,7 +220,7 @@ def add_to_netcdf_cube(cubename, normal_data, transformed_data, lead_time):
     trans[lead_time, :] = [[1, 2, 3, 4]]
     outcube.close()
 
-def add_to_netcdf_cube_from_files(end_date, files, cubename, refresh=True):
+def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
     """
     Adds to a netCDF cube SMIPS or ACCESS-G data or params from files - aggregates.
     Parameters:
@@ -229,6 +229,8 @@ def add_to_netcdf_cube_from_files(end_date, files, cubename, refresh=True):
         files -- source of data to add as a list from glob.glob
     """
     if 'SMIPS' in cubename or 'ACCESS' in cubename:
+        if not end_date:
+            print('End date is required for SMIPS/ACCESS-G')
         if 'SMIPS' in cubename:
             var_name = 'blended_precipitation'
             cubepathname = os.path.join(settings.SMIPS_DEST_PATH, cubename)
@@ -307,16 +309,23 @@ def add_to_netcdf_cube_from_files(end_date, files, cubename, refresh=True):
             #print(dataset.time.values[dateindex])
             print(dateindex+1, outcube.variables['time'][dateindex])
             #print(var[dateindex], datain.data[:])
-    elif 'params' in cubename:
+    elif 'PARAMS' in cubename:
         # add parameter data to aggregate netcdf cube
-        _, lat, lon = cubename.rstrip('.nc').split('_')
         cubepathname = os.path.join(settings.PARAMS_PATH, cubename)
         if not os.path.exists(cubepathname):
             print('NetCDF Cube doesn\'t exist at ', cubepathname)
             create_cube(cubepathname)
         outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
+        refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
+        # todo: make this refcube a global variable? since it's used a few times and it's static
+        lat_indices = {round(float(lat), 2): index for (lat, index) in zip(refcube.lat.values, range(len(refcube.lat.values)))}
+        lon_indices = {round(float(lon), 2): index for (lon, index) in zip(refcube.lon.values, range(len(refcube.lon.values)))}
+
         for file2process in files:
             file = file2process
+            _, lat, lon = file.rstrip('.nc').split('_')
+            lat, lon = round(float(lat), 2), round(float(lon), 2)  # rounding lat and lon values to sacrifice accuracy for consistency in the dictionary lookup
+
             dataset = xr.open_dataset(file, decode_times=False)
             normal_data = dataset['normal_param'].values
             transformed_data = dataset['transformed_param'].values
@@ -324,11 +333,13 @@ def add_to_netcdf_cube_from_files(end_date, files, cubename, refresh=True):
             trans_datain = np.where(transformed_data == 9.96921e+36, -9999.0, transformed_data)
 
             print('Exporting to netCDF for grid (lat, lon): ', lat, ",", lon)
-
+            lat_index = lat_indices[lat]
+            print(lon_indices.get(142.38281))
+            lon_index = lon_indices[lon]
             norm = outcube.variables['normal_param']
-            norm[lat, lon, :] = norm_datain[:]
+            norm[lat_index, lon_index, :] = norm_datain[:]
             trans = outcube.variables['transformed_param']
-            trans[lat, lon, :] = [trans_datain[:]]
+            trans[lat_index, lon_index, :] = [trans_datain[:]]
 
     outcube.close()
 
@@ -387,8 +398,8 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
     elif params:
         # aggregate parameter files
         path = settings.PARAMS_GRIDS_PATH
-        files = settings.params_filename
-        nc = xr.open_dataset(path + aggregated_params)
+        #files = settings.params_filename
+        #nc = xr.open_dataset(path + aggregated_params)
         files = [file for file in glob.glob(path +'*.nc')]
         add_to_netcdf_cube_from_files(cubename=aggregated_params, files=files)
 
