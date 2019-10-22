@@ -41,40 +41,13 @@ def transform(data):
 
 def extract_fit_data(lat, lon, start_date, end_date):
 
-    access_g_file = settings.ACCESS_G_AGG
-    smips_file = settings.SMIPS_AGG
-
-    observed = xr.open_dataset(smips_file, decode_times=False)
-    forecast = xr.open_dataset(access_g_file, decode_times=False)
-
-    # need to get some extra days of obs to account for lead time
-    sel_date_deltas = []
-    cdate = start_date
-    while cdate <= (end_date + relativedelta(days=15)):
-        sel_date_deltas.append((cdate - date(1900,1,1)).days)
-        cdate += relativedelta(days=1)
-
-    observed = observed.sel(lat=lat, lon=lon, method='nearest')
-    observed = observed.sel(time=sel_date_deltas)
-    observed_values = observed['blended_precipitation'].values
-
-    sel_date_deltas = []
-    cdate = start_date
-    while cdate <= end_date:
-        sel_date_deltas.append((cdate - date(1900,1,1)).days)
-        cdate += relativedelta(days=1)
-    num_forecasts = len(sel_date_deltas)
-
-    forecast = forecast.sel(lat=lat, lon=lon, method='nearest')
-    forecast = forecast.sel(time=sel_date_deltas)
-    forecast_values = forecast['accum_prcp'].values
-
+    # check for timezone first in case of not usable location
     # find the time zone of SMIPS grid point to line up SMIPS data with ACCESS-G data
     tf = TimezoneFinder(in_memory=True)
     timezone = tf.timezone_at(lng=lon, lat=lat)
 
     if not timezone: # timezone wasn't found, probably because the location is over water and doesn't have one
-        print("Timezone wasn't found")
+        print("Timezone not found")
         return 'Location over water'
 
     if ('Brisbane' or 'Lindeman') in timezone:
@@ -93,7 +66,42 @@ def extract_fit_data(lat, lon, start_date, end_date):
         utc_offset = 10
     else:
         print('Unknown timezone?', timezone)
+        return 'Location over water'
     print('Timezone found')
+
+    access_g_file = settings.ACCESS_G_AGG
+    smips_file = settings.SMIPS_AGG
+
+    observed = xr.open_dataset(smips_file, decode_times=False)
+
+    # need to get some extra days of obs to account for lead time
+    sel_date_deltas = []
+    cdate = start_date
+    while cdate <= (end_date + relativedelta(days=15)):
+        sel_date_deltas.append((cdate - date(1900,1,1)).days)
+        cdate += relativedelta(days=1)
+
+    observed = observed.sel(lat=lat, lon=lon, method='nearest')
+    observed = observed.sel(time=sel_date_deltas)
+    observed_values = observed['blended_precipitation'].values
+
+    if np.isnan(observed_values).all():
+        print('Coordinate does not contain observation values')
+        return('Location over water')
+
+    forecast = xr.open_dataset(access_g_file, decode_times=False)
+
+    sel_date_deltas = []
+    cdate = start_date
+    while cdate <= end_date:
+        sel_date_deltas.append((cdate - date(1900,1,1)).days)
+        cdate += relativedelta(days=1)
+    num_forecasts = len(sel_date_deltas)
+
+    forecast = forecast.sel(lat=lat, lon=lon, method='nearest')
+    forecast = forecast.sel(time=sel_date_deltas)
+    forecast_values = forecast['accum_prcp'].values
+
 
     fit_ptor_data = np.empty((num_forecasts, 9))
     fit_ptand_data = np.empty((num_forecasts, 9))

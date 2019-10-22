@@ -20,14 +20,11 @@
 # 	- Hydrological model
 # 		○ Output: 7 day ensemble soil moisture forecast (API)
 
-import argparse
-import logging
-import os
-import sys
 from datetime import date
 
 import numpy as np
 import matplotlib.pyplot as plt
+import xarray as xr
 
 import data_transfer
 import iris_regridding
@@ -35,8 +32,6 @@ import cube
 import transform
 import bjpmodel
 from cube import add_to_netcdf_cube, aggregate_netcdf
-import xarray as xr
-
 import settings
 
 def daily_jobs():
@@ -114,9 +109,12 @@ def create_grid_param_files():
     #np.random.seed(50)
     #lat_sample = np.random.choice(lat, y)
     #lon_sample = np.random.choice(lon, y)
+
     for lat in lats:
-        for lon in lons:
-            data_processing(lat, lon)
+        if -43.59375 <= lat <= -10.07813: # min/max values where lat stops containing all NaN
+            for lon in lons:
+                if 113.2031 <= lon <= 153.6328:
+                    data_processing(lat, lon)
 
 
 if __name__ == '__main__':

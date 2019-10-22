@@ -113,7 +113,7 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             xlon[:] = refcube.lon.values
             ylat[:] = refcube.lat.values
 
-    elif 'PARAMS' in cubepathname:
+    elif 'params' in cubepathname:
         # create cube for grid parameters
         # also check paramaters if you're creating a single-grid cube or a whole-grid cube for aggregation
 
