@@ -193,7 +193,12 @@ class BjpModel:
         self.bjp_wrapper = bjp_wrapper
         self.bjp_fitting_data = bjp_fitting_data
 
-        return mu, cov
+        tparams = []
+        for trformer in bjp_fitting_data['trformer']:
+            tparams.append(trformer.get_params())
+        tparams = np.array(tparams)
+
+        return mu, cov, tparams
 
 
 

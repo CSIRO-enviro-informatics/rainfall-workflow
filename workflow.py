@@ -80,12 +80,14 @@ def data_processing(lat, lon):
         # plt.legend(loc='best')
         # plt.show()
 
-        mu, cov = bjp_model.sample(fdata, [10, 10])
+        mu, cov, tparams = bjp_model.sample(fdata, [10, 10])
+        #mu, cov = bjp_model.sample(fdata, [10, 10])
+
         # Save mu, cov, and transformation parameters to netcdf file for that grid point
         # Can edit functions in cube.py to accommodate this new kind of file
         normal_params = np.concatenate((mu, np.asarray(cov)), axis=1)
-        transformed_params = []
-        add_to_netcdf_cube(settings.params_filename(lat, lon), normal_params[:1000], transformed_params, lt)
+        #tparams = [1, 2, 3, 4, 5, 6]
+        add_to_netcdf_cube(settings.params_filename(lat, lon), normal_params[:1000], tparams, lt)
 
         #print('lead time', lt, mu.shape, cov.shape, mu[0], np.asarray(cov[0]))
 
