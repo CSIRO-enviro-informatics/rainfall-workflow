@@ -125,15 +125,19 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             outcube.description = 'Normal and transformed parameters for entire grid.'
             outcube.history = 'Created ' + datetime.datetime.now().isoformat()
 
-            outcube.createDimension('normal_set', 1000)
-            outcube.createDimension('transformed_set', 1)
-            outcube.createVariable('normal_set', 'u4', 'normal_set')
-            outcube.createVariable('transformed_set', 'u4', 'transformed_set')
+            outcube.createDimension('np_set', 1000)
+            outcube.createDimension('tp_set', 1)
+            np_set = outcube.createVariable('np_set', 'u4', 'np_set')
+            tp_set = outcube.createVariable('tp_set', 'u4', 'tp_set')
+            np_set.setncatts({"long_name": "normalised parameter set"})
+            tp_set.setncatts({"long_name": "transformed parameter set"})
 
-            outcube.createDimension('normal_parameters', 5)
-            outcube.createDimension('transformed_parameters', 4)
-            outcube.createVariable('normal_parameters', 'f4', 'normal_parameters')
-            outcube.createVariable('transformed_parameters', 'f4', 'transformed_parameters')
+            outcube.createDimension('np_types', 5)
+            outcube.createDimension('tp_types', 6)
+            np_types = outcube.createVariable('np_types', 'u4', 'np_types')
+            tp_types = outcube.createVariable('tp_types', 'u4', 'tp_types')
+            np_types.setncatts({"long_name": "normalised parameter types: mu1, mu2, sigma1, sigma2, scaling_factor"})
+            tp_types.setncatts({"long_name": "transformed parameter types: lambda1, epsilon1, scaling_factor1, lambda2, epsilon2, scaling_factor2"})
 
             outcube.createDimension('lead_time', 9)
             outcube.createVariable('lead_time', 'u4', 'lead_time')
@@ -151,10 +155,10 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             ylat[:] = refcube.lat.values
 
             # data variables
-            outcube.createVariable('normal_param', 'f', ('lat', 'lon', 'lead_time', 'normal_set', 'normal_parameters'), least_significant_digit=3,
-                                   fill_value=-9999.0)
-            outcube.createVariable('transformed_param', 'f', ('lat', 'lon', 'lead_time', 'transformed_set', 'transformed_parameters'), least_significant_digit=3,
-                                   fill_value=-9999.0)
+            outcube.createVariable('n_parameters', 'f', ('lat', 'lon', 'lead_time', 'np_set', 'np_types'),
+                                   least_significant_digit=3, fill_value=-9999.0)
+            outcube.createVariable('t_parameters', 'f', ('lat', 'lon', 'lead_time', 'tp_set', 'tp_types'),
+                                   least_significant_digit=3, fill_value=-9999.0)
 
         else:
             if not lat or not lon:
@@ -163,23 +167,27 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             outcube.description = 'Normal and transformed parameters for grid at: ' + lat + ', ' + lon
             outcube.history = 'Created ' + datetime.datetime.now().isoformat()
 
-            outcube.createDimension('normal_set', 1000)
-            outcube.createDimension('transformed_set', 1)
-            norm_set = outcube.createVariable('normal_set', 'u4', 'normal_set')
-            trans_set = outcube.createVariable('transformed_set', 'u4', 'transformed_set')
+            outcube.createDimension('np_set', 1000)
+            outcube.createDimension('tp_set', 1)
+            np_set = outcube.createVariable('np_set', 'u4', 'np_set')
+            tp_set = outcube.createVariable('tp_set', 'u4', 'tp_set')
+            np_set.setncatts({"long_name": "normalised parameter set"})
+            tp_set.setncatts({"long_name": "transformed parameter set"})
 
-            outcube.createDimension('normal_parameters', 5)
-            outcube.createDimension('transformed_parameters', 4)
-            norm_parameters = outcube.createVariable('normal_parameters', 'c', 'normal_parameters')
-            trans_parameters = outcube.createVariable('transformed_parameters', 'c', 'transformed_parameters')
+            outcube.createDimension('np_types', 5)
+            outcube.createDimension('tp_types', 6)
+            np_types = outcube.createVariable('np_types', 'u4', 'np_types')
+            tp_types = outcube.createVariable('tp_types', 'u4', 'tp_types')
+            np_types.setncatts({"long_name": "normalised parameter types: mu1, mu2, sigma1, sigma2, scaling_factor"})
+            tp_types.setncatts({"long_name": "transformed parameter types: lambda1, epsilon1, scaling_factor1, lambda2, epsilon2, scaling_factor2"})
 
             outcube.createDimension('lead_time', 9)
             lead = outcube.createVariable('lead_time', 'u4', 'lead_time')
 
             # data variables
-            outcube.createVariable('normal_param', 'f', ('lead_time', 'normal_set', 'normal_parameters'), least_significant_digit=3,
+            outcube.createVariable('n_parameters', 'f', ('lead_time', 'np_set', 'np_types'), least_significant_digit=3,
                                    fill_value=-9999.0)
-            outcube.createVariable('transformed_param', 'f', ('lead_time', 'transformed_set', 'transformed_parameters'), least_significant_digit=3,
+            outcube.createVariable('t_parameters', 'f', ('lead_time', 'tp_set', 'tp_types'), least_significant_digit=3,
                                    fill_value=-9999.0)
 
             ylat = outcube.createVariable('lat', 'f4')
@@ -191,10 +199,11 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
 
             ylat[:] = lat
             xlon[:] = lon
-            norm_set[:] = np.array([x for x in range(1000)])
-            trans_set[:] = 0
-            norm_parameters[:] = ['u', 'v', 'o', 'p', 'r']
-            trans_parameters[:] = ['l', 'e', 'm', 'f']
+            # think I need to set the following to values (index-like) because panoply doesn't like it when they're not
+            np_set[:] = np.array([x for x in range(1000)])
+            tp_set[:] = 0
+            np_types[:] = np.array([x for x in range(5)])
+            tp_types[:] = np.array([x for x in range(6)])
             lead[:] = np.array([x for x in range(9)])
 
     outcube.close()
@@ -214,10 +223,10 @@ def add_to_netcdf_cube(cubename, normal_data, transformed_data, lead_time):
         create_cube(cubepathname, lat=lat, lon=lon)
     outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
-    norm = outcube.variables['normal_param']
+    norm = outcube.variables['n_parameters']
     norm[lead_time, :] = normal_data[:]
-    trans = outcube.variables['transformed_param']
-    trans[lead_time, :] = [[1, 2, 3, 4]]
+    trans = outcube.variables['t_parameters']
+    trans[lead_time, :] = [transformed_data[:]]
     outcube.close()
 
 def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
@@ -327,8 +336,8 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             lat, lon = round(float(lat), 2), round(float(lon), 2)  # rounding lat and lon values to sacrifice accuracy for consistency in the dictionary lookup
 
             dataset = xr.open_dataset(file, decode_times=False)
-            normal_data = dataset['normal_param'].values
-            transformed_data = dataset['transformed_param'].values
+            normal_data = dataset['n_parameters'].values
+            transformed_data = dataset['t_parameters'].values
             norm_datain = np.where(normal_data == 9.96921e+36, -9999.0, normal_data)
             trans_datain = np.where(transformed_data == 9.96921e+36, -9999.0, transformed_data)
 
@@ -336,9 +345,9 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             lat_index = lat_indices[lat]
             print(lon_indices.get(142.38281))
             lon_index = lon_indices[lon]
-            norm = outcube.variables['normal_param']
+            norm = outcube.variables['n_parameters']
             norm[lat_index, lon_index, :] = norm_datain[:]
-            trans = outcube.variables['transformed_param']
+            trans = outcube.variables['t_parameters']
             trans[lat_index, lon_index, :] = [trans_datain[:]]
 
     outcube.close()
