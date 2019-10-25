@@ -6,6 +6,7 @@ import glob
 from dates import get_dates, convert_date
 import datetime
 import numpy as np
+#from workflow import get_lat_lon_values
 
 aggregated_smips = 'SMIPS.nc'
 aggregated_access_g = 'ACCESS-G.nc'
@@ -14,6 +15,10 @@ aggregated_params = 'PARAMS_aggregated.nc'
 smips_name = 'SMIPS'
 access_name = 'ACCESS'
 
+
+def get_lat_lon_values():
+    refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
+    return refcube.lat.values, refcube.lon.values
 
 
 def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
@@ -36,40 +41,38 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
         dayssince = (startdate - datetime.datetime(1900, 1, 1)).days
         time = np.arange(dayssince,dayssince + days,1)
 
+        lat, lon = get_lat_lon_values()
+        rows = len(lat)
+        cols = len(lon)
+
+        outcube.createDimension('lon', cols)
+        outcube.createDimension('lat', rows)
+        xlon = outcube.createVariable('lon', 'f4', 'lon')
+        ylat = outcube.createVariable('lat', 'f4', 'lat')
+
+        outcube.createDimension('time', None)  # days
+        nctime = outcube.createVariable('time', 'u4', 'time')
+        nctime.setncatts(
+            {"long_name": "time", "units": "days since 1900-01-01 00:00:00.0 -0:00", "calendar": "gregorian"})
+        nctime[:] = time[:days]
+
+        # add attributes
+        xlon.setncatts(
+            {"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84", 'axis': 'X'})
+        ylat.setncatts(
+            {"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84", 'axis': 'Y'})
+
         if 'SMIPS' in cubepathname:
-            refcube = xr.open_dataset(settings.SMIPS_DEST_PATH + settings.smips_filename('20190101'))
-            rows = len(refcube.lat.values)
-            cols = len(refcube.lon.values)
+            #refcube = xr.open_dataset(settings.SMIPS_DEST_PATH + settings.smips_filename('20190101'))
 
             outcube.description = 'SMIPS Daily Outputs'
             outcube.history = 'Created ' + datetime.datetime.now().isoformat()
 
-            outcube.createDimension('lon', cols)#cols
-            outcube.createDimension('lat', rows)#rows
-            xlon = outcube.createVariable('lon', 'f4', 'lon')
-            ylat = outcube.createVariable('lat', 'f4', 'lat')
-
-            outcube.createDimension('time', None)#days
-            nctime = outcube.createVariable('time', 'u4', 'time')
-            nctime.setncatts({"long_name": "time", "units": "days since 1900-01-01 00:00:00.0 -0:00", "calendar":"gregorian"})
-            nctime[:] = time[:days]
-
             blended_precipitation = outcube.createVariable('blended_precipitation', 'f', ('time', 'lat', 'lon'), least_significant_digit=3, fill_value=-9999.0)
             blended_precipitation.setncatts({'units':'millimetres'})
 
-            # add attributes
-            xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84"})
-            ylat.setncatts({"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84"})
-
-            # add lat/lon data
-            print(xlon.size, ylat.size, rows, cols)
-            xlon[:] = refcube.lon.values
-            ylat[:] = refcube.lat.values
-
         elif 'ACCESS' in cubepathname:
-            refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
-            rows = len(refcube.lat.values)
-            cols = len(refcube.lon.values)
+            #refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
 
             outcube.Conventions = 'CF-1.5,ACDD-1.3'
             outcube.institution = 'Australian Bureau of Meteorology'
@@ -79,18 +82,6 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             outcube.base_time = 1200
             outcube.modl_vrsn = 'ACCESS-G'
 
-            outcube.createDimension('lon', cols)  # cols
-            outcube.createDimension('lat', rows)  # rows
-            xlon = outcube.createVariable('lon', 'f4', 'lon')
-            ylat = outcube.createVariable('lat', 'f4', 'lat')
-
-            outcube.createDimension('time', None)  # days
-            nctime = outcube.createVariable('time', 'u4', 'time')
-            nctime.setncatts(
-                {"long_name": "time", "units": "days since 1900-01-01 00:00:00.0 -0:00", "calendar": "gregorian"})
-            nctime[:] = time[:days]
-
-
             lead_times = [x*3600 for x in range (1, 241)]
             outcube.createDimension('lead_time', 240)
             ncleadtime = outcube.createVariable('lead_time', 'u4', 'lead_time')
@@ -98,61 +89,58 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
                 {"long_name": "lead_time", "calendar": "gregorian", 'axis':'T','units': 'seconds since created date 12:00:00'})
             ncleadtime[:] = lead_times[:]
 
-
             accum_prcp = outcube.createVariable('accum_prcp', 'f', ('time', 'lead_time', 'lat', 'lon'),
                                                            least_significant_digit=3, fill_value=-9999.0)
             accum_prcp.setncatts({'units': 'kg m-2', 'grid_type': 'spatial', 'long_name': 'accumulated precipitation',
                                   'accum_type': 'accumulative', 'accum_units': 'hrs', 'accum_value': 4})#, 'missing_value': 1.0E36})
 
-            # add attributes
-            xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84", 'axis': 'X'})
-            ylat.setncatts({"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84", 'axis': 'Y'})
-
-            # add lat/lon data
-            print(xlon.size, ylat.size, rows, cols)
-            xlon[:] = refcube.lon.values
-            ylat[:] = refcube.lat.values
+        # add lat/lon data
+        print(xlon.size, ylat.size, rows, cols)
+        xlon[:] = lon
+        ylat[:] = lat
 
     elif 'params' in cubepathname:
         # create cube for grid parameters
         # also check paramaters if you're creating a single-grid cube or a whole-grid cube for aggregation
 
+        outcube.history = 'Created ' + datetime.datetime.now().isoformat()
+
+        outcube.createDimension('np_set', None) # may be 2000
+        outcube.createDimension('tp_set', 2)
+        np_set = outcube.createVariable('np_set', 'u4', 'np_set')
+        tp_set = outcube.createVariable('tp_set', 'u4', 'tp_set')
+        np_set.setncatts({"long_name": "normalised parameter set"})
+        tp_set.setncatts({"long_name": "transformed parameter set"})
+
+        outcube.createDimension('np_types', 5)
+        outcube.createDimension('tp_types', 3)
+        np_types = outcube.createVariable('np_types', 'u4', 'np_types')
+        tp_types = outcube.createVariable('tp_types', 'u4', 'tp_types')
+        np_types.setncatts({"long_name": "normalised parameter types: mu1, mu2, sigma1, sigma2, scaling_factor"})
+        tp_types.setncatts({"long_name": "transformed parameter types: lambda, epsilon, scaling_factor"})
+
+        outcube.createDimension('lead_time', 9)
+        lead = outcube.createVariable('lead_time', 'u4', 'lead_time')
+
+        lead[:] = range(9)
+        np_set[:] = range(1000)
+        tp_set[:] = range(2)
+        np_types[:] = range(5)
+        tp_types[:] = range(3)
+
+
         if 'aggregate' in cubepathname:
-            refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
-            rows = len(refcube.lat.values)
-            cols = len(refcube.lon.values)
+            #refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
+            lat, lon = get_lat_lon_values()
+            rows = len(lat)
+            cols = len(lon)
 
             outcube.description = 'Normal and transformed parameters for entire grid.'
-            outcube.history = 'Created ' + datetime.datetime.now().isoformat()
-
-            outcube.createDimension('np_set', 1000)
-            outcube.createDimension('tp_set', 1)
-            np_set = outcube.createVariable('np_set', 'u4', 'np_set')
-            tp_set = outcube.createVariable('tp_set', 'u4', 'tp_set')
-            np_set.setncatts({"long_name": "normalised parameter set"})
-            tp_set.setncatts({"long_name": "transformed parameter set"})
-
-            outcube.createDimension('np_types', 5)
-            outcube.createDimension('tp_types', 6)
-            np_types = outcube.createVariable('np_types', 'u4', 'np_types')
-            tp_types = outcube.createVariable('tp_types', 'u4', 'tp_types')
-            np_types.setncatts({"long_name": "normalised parameter types: mu1, mu2, sigma1, sigma2, scaling_factor"})
-            tp_types.setncatts({"long_name": "transformed parameter types: lambda1, epsilon1, scaling_factor1, lambda2, epsilon2, scaling_factor2"})
-
-            outcube.createDimension('lead_time', 9)
-            outcube.createVariable('lead_time', 'u4', 'lead_time')
 
             outcube.createDimension('lon', cols)  # cols
             outcube.createDimension('lat', rows)  # rows
             ylat = outcube.createVariable('lat', 'f4', 'lat')
             xlon = outcube.createVariable('lon', 'f4', 'lon')
-
-            # add attributes
-            xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84"})
-            ylat.setncatts({"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84"})
-
-            xlon[:] = refcube.lon.values
-            ylat[:] = refcube.lat.values
 
             # data variables
             outcube.createVariable('n_parameters', 'f', ('lat', 'lon', 'lead_time', 'np_set', 'np_types'),
@@ -165,24 +153,6 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
                 print('Need to run with lat/lon parameters')
 
             outcube.description = 'Normal and transformed parameters for grid at: ' + lat + ', ' + lon
-            outcube.history = 'Created ' + datetime.datetime.now().isoformat()
-
-            outcube.createDimension('np_set', 1000)
-            outcube.createDimension('tp_set', 1)
-            np_set = outcube.createVariable('np_set', 'u4', 'np_set')
-            tp_set = outcube.createVariable('tp_set', 'u4', 'tp_set')
-            np_set.setncatts({"long_name": "normalised parameter set"})
-            tp_set.setncatts({"long_name": "transformed parameter set"})
-
-            outcube.createDimension('np_types', 5)
-            outcube.createDimension('tp_types', 6)
-            np_types = outcube.createVariable('np_types', 'u4', 'np_types')
-            tp_types = outcube.createVariable('tp_types', 'u4', 'tp_types')
-            np_types.setncatts({"long_name": "normalised parameter types: mu1, mu2, sigma1, sigma2, scaling_factor"})
-            tp_types.setncatts({"long_name": "transformed parameter types: lambda1, epsilon1, scaling_factor1, lambda2, epsilon2, scaling_factor2"})
-
-            outcube.createDimension('lead_time', 9)
-            lead = outcube.createVariable('lead_time', 'u4', 'lead_time')
 
             # data variables
             outcube.createVariable('n_parameters', 'f', ('lead_time', 'np_set', 'np_types'), least_significant_digit=3,
@@ -193,40 +163,97 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             ylat = outcube.createVariable('lat', 'f4')
             xlon = outcube.createVariable('lon', 'f4')
 
-            # add attributes
-            xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84"})
-            ylat.setncatts({"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84"})
+        ylat[:] = lat
+        xlon[:] = lon
 
+        # add attributes
+        xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84"})
+        ylat.setncatts({"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84"})
+
+
+
+    elif 'forecast' in cubepathname:
+        outcube.history = 'Created ' + datetime.datetime.now().isoformat()
+
+        outcube.createDimension('time', None)  # unlimited
+        nctime = outcube.createVariable('time', 'u4', 'time')
+        nctime.setncatts({"long_name": "time", "units": "days since 1900-01-01 00:00:00.0 -0:00", "calendar": "gregorian"})
+
+        outcube.createDimension('ensemble_member', 1000)
+        outcube.createVariable('ensemble_member', 'u4', 'ensemble_member')
+
+        outcube.createDimension('lead_time', 9)
+        outcube.createVariable('lead_time', 'u4', 'lead_time')
+
+        # data variables
+        outcube.createVariable('forecast_value', 'f', ('time', 'lead_time', 'ensemble_member'), least_significant_digit=3,
+                               fill_value=-9999.0)
+
+        ylat = outcube.createVariable('lat', 'f4')
+        xlon = outcube.createVariable('lon', 'f4')
+
+        # add attributes
+        xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84"})
+        ylat.setncatts({"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84"})
+
+        if 'aggregate' in cubepathname:
+            outcube.description = "Post-processed forecast"
+            ylat[:], xlon[:] = get_lat_lon_values()
+
+        else:
+            outcube.description = 'Post-processed forecast for grid at: ' + lat + ', ' + lon
             ylat[:] = lat
             xlon[:] = lon
-            # think I need to set the following to values (index-like) because panoply doesn't like it when they're not
-            np_set[:] = np.array([x for x in range(1000)])
-            tp_set[:] = 0
-            np_types[:] = np.array([x for x in range(5)])
-            tp_types[:] = np.array([x for x in range(6)])
-            lead[:] = np.array([x for x in range(9)])
 
     outcube.close()
 
-def add_to_netcdf_cube(cubename, normal_data, transformed_data, lead_time):
+
+def add_to_netcdf_cube(cubename, normal_data, lead_time, transformed_data=None, date=None):
     """
-    Adds params data to a single grid cube.
-    :param cubename: name of the cube - will contain 'params', and lat and lon info
-    :param normal_data: param data to add; [1000, 5]
-    :param transformed_data: param data to add; [4]
+    if params: Adds params data to a single grid cube.
+    if forecast: Adds forecast data to a single grid cube
+    :param cubename: name of the cube - will contain 'params' or 'forecast', and lat and lon info
+    :param normal_data: param data to add; [1000, 5] OR forecast data to add; [1000]
+    :param lead_time: lead time in days; in range(9)
+    :param transformed_data: param data to add; [4]; params only
+    :param date: date for forecast only
     :return: void
     """
-    cubepathname = os.path.join(settings.PARAMS_GRIDS_PATH, cubename)
-    _, lat, lon = cubename.rstrip('.nc').split('_')
-    if not os.path.exists(cubepathname):
-        print('NetCDF Cube doesn\'t exist at ', cubepathname)
-        create_cube(cubepathname, lat=lat, lon=lon)
-    outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
+    if 'params' in cubename:
+        # if transformed_data == None:
+        #    print("Run with transformed data parameter")
+        #    return
+        cubepathname = os.path.join(settings.PARAMS_GRIDS_PATH, cubename)
+        _, lat, lon = cubename.rstrip('.nc').split('_')
+        if not os.path.exists(cubepathname):
+            print('NetCDF Cube doesn\'t exist at ', cubepathname)
+            create_cube(cubepathname, lat=lat, lon=lon)
+        outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
-    norm = outcube.variables['n_parameters']
-    norm[lead_time, :] = normal_data[:]
-    trans = outcube.variables['t_parameters']
-    trans[lead_time, :] = [transformed_data[:]]
+        norm = outcube.variables['n_parameters']
+        norm[lead_time, :] = normal_data
+        trans = outcube.variables['t_parameters']
+        trans[lead_time, :] = transformed_data
+
+    elif 'forecast' in cubename:
+        if not date:
+            print("Run with date parameter")
+            return
+        cubepathname = os.path.join(settings.FORECAST_GRID_PATH, cubename)
+        _, lat, lon = cubename.rstrip('.nc').split('_')
+        if not os.path.exists(cubepathname):
+            print('NetCDF Cube doesn\'t exist at ', cubepathname)
+            create_cube(cubepathname, lat=lat, lon=lon)
+        outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
+
+        tme = outcube.variables['time']
+        startbase = datetime.date(1900, 1, 1)
+        datedelta = (date - startbase).days
+        dateindex = len(tme.values) + 1
+        tme[dateindex] = datedelta
+        forecast = outcube.variables['forecast_value']
+        forecast[dateindex, lead_time, :] = normal_data
+
     outcube.close()
 
 def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
@@ -284,7 +311,6 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             file = file2process
 
             dataset = xr.open_dataset(file, decode_times=False)
-            #data = dataset[var_name][:240,:154,:136].values
             if 'SMIPS' in cubename:
                 data = dataset[var_name].values
                 datain = np.where(data==9.96921e+36, -9999.0, data)
@@ -293,7 +319,6 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
                 if '20181008' in file:  # file with incomplete lead time dimension
                     padded = np.full((240, 154, 136), 1.0E36)
                     padded[:120, :154, :136] = dataset[var_name][:120, :154, :136].values
-                    #data = np.where(padded == 0, -9999.0, padded)
                     datain = np.where(padded == 1.0E36, -9999.0, padded)
                 else:
                     data = dataset[var_name][:240, :154, :136].values
@@ -318,6 +343,7 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             #print(dataset.time.values[dateindex])
             print(dateindex+1, outcube.variables['time'][dateindex])
             #print(var[dateindex], datain.data[:])
+
     elif 'PARAMS' in cubename:
         # add parameter data to aggregate netcdf cube
         cubepathname = os.path.join(settings.PARAMS_PATH, cubename)
@@ -325,10 +351,10 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             print('NetCDF Cube doesn\'t exist at ', cubepathname)
             create_cube(cubepathname)
         outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
-        refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
-        # todo: make this refcube a global variable? since it's used a few times and it's static
-        lat_indices = {round(float(lat), 2): index for (lat, index) in zip(refcube.lat.values, range(len(refcube.lat.values)))}
-        lon_indices = {round(float(lon), 2): index for (lon, index) in zip(refcube.lon.values, range(len(refcube.lon.values)))}
+
+        lats, lons = get_lat_lon_values()
+        lat_indices = {round(float(lat), 2): index for (lat, index) in zip(lats, range(len(lats)))}
+        lon_indices = {round(float(lon), 2): index for (lon, index) in zip(lons, range(len(lons)))}
 
         for file2process in files:
             file = file2process
@@ -343,12 +369,38 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
 
             print('Exporting to netCDF for grid (lat, lon): ', lat, ",", lon)
             lat_index = lat_indices[lat]
-            print(lon_indices.get(142.38281))
             lon_index = lon_indices[lon]
             norm = outcube.variables['n_parameters']
             norm[lat_index, lon_index, :] = norm_datain[:]
             trans = outcube.variables['t_parameters']
-            trans[lat_index, lon_index, :] = [trans_datain[:]]
+            trans[lat_index, lon_index, :] = trans_datain[:]
+
+    elif 'forecast' in cubename:
+        # aggregate forecasts
+        cubepathname = os.path.join(settings.FORECAST_PATH, cubename)
+        if not os.path.exists(cubepathname):
+            print('NetCDF Cube doesn\'t exist at ', cubepathname)
+            create_cube(cubepathname)
+        outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
+
+        lats, lons = get_lat_lon_values()
+        lat_indices = {round(float(lat), 2): index for (lat, index) in zip(lats, range(len(lats)))}
+        lon_indices = {round(float(lon), 2): index for (lon, index) in zip(lons, range(len(lons)))}
+
+        for file2process in files:
+            file = file2process
+            _, lat, lon = file.rstrip('.nc').split('_')
+            lat, lon = round(float(lat), 2), round(float(lon), 2)  # rounding lat and lon values to sacrifice accuracy for consistency in the dictionary lookup
+
+            dataset = xr.open_dataset(file, decode_times=False)
+            forecast_data = dataset['forecast_values'].values
+            fc_datain = np.where(forecast_data == 9.96921e+36, -9999.0, forecast_data)
+
+            print('Exporting to netCDF for grid (lat, lon): ', lat, ",", lon)
+            lat_index = lat_indices[lat]
+            lon_index = lon_indices[lon]
+            data = outcube.variables['forecast_values']
+            data[lat_index, lon_index, :] = fc_datain[:]
 
     outcube.close()
 
@@ -407,8 +459,6 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
     elif params:
         # aggregate parameter files
         path = settings.PARAMS_GRIDS_PATH
-        #files = settings.params_filename
-        #nc = xr.open_dataset(path + aggregated_params)
         files = [file for file in glob.glob(path +'*.nc')]
         add_to_netcdf_cube_from_files(cubename=aggregated_params, files=files)
 

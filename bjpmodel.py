@@ -204,7 +204,6 @@ class BjpModel:
 
     def forecast(self, predictor_values, gen_climatology=True, convert_cens=True):
 
-
         bjp_fc_data = self.prepare_fc_data(predictor_values, self.bjp_fitting_data)
         forecasts =  self.bjp_wrapper.forecast(bjp_fc_data['tr_data'], bjp_fc_data['flags'], bjp_fc_data['tr_censor'])
 

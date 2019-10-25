@@ -20,7 +20,7 @@
 # 	- Hydrological model
 # 		○ Output: 7 day ensemble soil moisture forecast (API)
 
-from datetime import date
+from datetime import date, timedelta
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,11 +28,11 @@ import xarray as xr
 
 import data_transfer
 import iris_regridding
-import cube
 import transform
 import bjpmodel
 from cube import add_to_netcdf_cube, aggregate_netcdf
 import settings
+import pytrans
 
 def daily_jobs():
     """
@@ -43,8 +43,8 @@ def daily_jobs():
     """
     data_transfer.transfer_files()
     iris_regridding.run_regridding()
-    cube.aggregate_netcdf(smips=True)
-    cube.aggregate_netcdf(accessg=True)
+    aggregate_netcdf(smips=True)
+    aggregate_netcdf(accessg=True)
     print('Daily jobs done')
 
 
@@ -87,7 +87,7 @@ def data_processing(lat, lon):
         # Can edit functions in cube.py to accommodate this new kind of file
         normal_params = np.concatenate((mu, np.asarray(cov)), axis=1)
         #tparams = [1, 2, 3, 4, 5, 6]
-        add_to_netcdf_cube(settings.params_filename(lat, lon), normal_params[:1000], tparams, lt)
+        add_to_netcdf_cube(settings.params_filename(lat, lon), normal_data=normal_params[:1000], transformed_data=tparams, lead_time=lt)
 
         #print('lead time', lt, mu.shape, cov.shape, mu[0], np.asarray(cov[0]))
 
@@ -106,6 +106,60 @@ def get_lat_lon_values():
     return refcube.lat.values, refcube.lon.values
 
 
+def read_params(lat, lon):
+    """
+    Read the mu and cov data from agg netcdf and reconstruct arrays with the same shape and order as returned from BJP
+    sample. Both [1000][2]
+    :return:
+    """
+    file = settings.PARAMS_GRIDS_PATH + settings.params_filename(lat, lon)
+    cube = xr.load_dataset(file)
+    for lt in range(9):
+        params = cube.n_parameters.values
+        mu = params[lt, :, :2]
+        cov = params[lt, :, 2:]
+        # send these back into bjp
+
+
+def transform_forecast(d):
+    """
+    Read the ACCESS-G data for a given forecast date and transform it using the predictor transformation parameters saved to netcdf
+    - using the "one" set of parameters
+    - for all lead times for a date
+    - for all grid points at once? I suppose this is what the realistic final function for this will look like, not a
+    step in the fitting process. yes, going by the diagram, fit gets me the parameters, forecast lets me use them
+    - but the "post processed 7 day time series forecast" says it's for one grid point. one date, one grid point at a time?
+    i guess this is the reference data that will be updated every day? for the soil moisture api. keeping the most current day's value
+    because the diagram says the time dimension is 1. unless...unlimited?
+    whichever way, i gotta make a new type of netcdf file and then an aggregated version of it
+    those functions for doing that are getting big. break them down into for specific file types?
+    :return: save the result to a netcdf file
+    """
+
+    # read an access-g date
+    fc_file = settings.ACCESS_G_AGG
+    fc = xr.open_dataset(fc_file, decode_times=False)
+    datedelta = (d - date(1900, 1, 1)).days
+    data = fc.sel(time=datedelta)
+
+    # read a sample grid point transform parameter set
+    p_file = settings.PARAMS_AGG
+    p = xr.open_dataset(p_file)
+    lat = -19.21875
+    lon = 123.046875
+    p_grid = p.sel(lat=lat, lon=lon)
+    tp = p_grid['t_parameters']
+    for lt in range(9):
+        predictor_tp = tp[lt][0]
+        data = transform.extract_data(lat, lon, d, lt)
+
+        # create a pylogsinh object and then call forecast with it and the t_parameters
+        pytrans.PyLogSinh(predictor_tp[0], predictor_tp[1], predictor_tp[2])
+        bjpmodel.forecast(data)
+        # the returned trans data is your forecast
+
+
+
 def create_grid_param_files():
     lats, lons = get_lat_lon_values()
     #np.random.seed(50)
@@ -113,13 +167,19 @@ def create_grid_param_files():
     #lon_sample = np.random.choice(lon, y)
 
     for lat in lats:
-        if -43.59375 <= lat <= -10.07813: # min/max values where lat stops containing all NaN
-            for lon in lons:
-                if 113.2031 <= lon <= 153.6328:
-                    data_processing(lat, lon)
+        if lat == -19.21875:
+        #if lat < -18.984375: #temporary thing bc it was interrupted, to not make it do a whole lot over again
+            if -43.59375 <= lat <= -10.07813: # min/max values where lat stops containing all NaN
+                for lon in lons:
+                    if lon == 123.046875:
+                    #if 113.2031 <= lon <= 153.6328:
+                        data_processing(lat, lon)
 
 
 if __name__ == '__main__':
     #daily_jobs()
     create_grid_param_files()
-    aggregate_netcdf(params=True)
+    #aggregate_netcdf(params=True)
+
+    read_params(-19.21875, 123.046875)
+    transform_forecast(date(2019, 1, 1))

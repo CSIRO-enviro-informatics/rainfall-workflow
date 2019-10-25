@@ -128,6 +128,53 @@ def extract_fit_data(lat, lon, start_date, end_date):
     return res
 
 
+def extract_data(lat, lon, cdate, lead_time):
+
+    # check for timezone first in case of not usable location
+    # find the time zone of SMIPS grid point to line up SMIPS data with ACCESS-G data
+    tf = TimezoneFinder(in_memory=True)
+    timezone = tf.timezone_at(lng=lon, lat=lat)
+
+    if not timezone: # timezone wasn't found, probably because the location is over water and doesn't have one
+        print("Timezone not found")
+        return 'Location over water'
+
+    if ('Brisbane' or 'Lindeman') in timezone:
+        utc_offset = 10
+    elif 'Melbourne' in timezone:
+        utc_offset = 10
+    elif 'Adelaide' in timezone:
+        utc_offset = 9.5
+    elif 'Darwin' in timezone:
+        utc_offset = 9.5
+    elif 'Hobart' in timezone:
+        utc_offset = 10
+    elif 'Eucla' in timezone or 'Perth' in timezone:
+        utc_offset = 8
+    elif 'Sydney' in timezone:
+        utc_offset = 10
+    else:
+        print('Unknown timezone?', timezone)
+        return 'Location over water'
+    print('Timezone found')
+
+    access_g_file = settings.ACCESS_G_AGG
+
+    forecast = xr.open_dataset(access_g_file, decode_times=False)
+    sel_date = (cdate - date(1900,1,1)).days
+
+    forecast = forecast.sel(lat=lat, lon=lon, method='nearest')
+    forecast = forecast.sel(time=sel_date)
+    forecast_values = forecast['accum_prcp'].values
+
+    base_i = 24*lead_time + int(utc_offset)  # day start
+    forecast_i = base_i + 24  # day end
+
+    print(lead_time, base_i, forecast_i)
+    fc = forecast_values[forecast_i] - forecast_values[base_i]
+
+    return fc
+
 
 def transformation(lat, lon):
     """

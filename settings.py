@@ -15,6 +15,10 @@ else:  # Windows
 
 PARAMS_PATH = 'test/params/'
 PARAMS_GRIDS_PATH = PARAMS_PATH + 'grids/'
+PARAMS_AGG = PARAMS_PATH + 'PARAMS_aggregated.nc'
+
+FORECAST_PATH = 'test/forecast/'
+FORECAST_GRID_PATH = FORECAST_PATH + 'grids/'
 
 SMIPS_CONTAINER = 'SMIPSv0.5.nc'  # name of container in SMIPS_PATH
 TEST_PATH = 'temp/'  # local directory for temporary file saving - needs cleaning out
