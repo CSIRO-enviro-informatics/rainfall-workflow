@@ -21,7 +21,7 @@ class BjpModel:
     GAUGE_CENS_THRESH = 0.2
 
 
-    def __init__(self, num_vars, burn=3000, chainlength=7000, seed='random'):
+    def __init__(self, num_vars, groups, burn=3000, chainlength=7000, seed='random'):
 
         self.num_vars = num_vars
         self.burn = burn
@@ -34,25 +34,32 @@ class BjpModel:
         else:
             self.seed = np.random.randint(0,100000)
 
+        self.groups = groups
+
+        self.censors = []
+        for i in range(num_vars):
+            if groups[i] == 10 or groups[i] == 20:
+                censor = self.ZERO_CENS_THRESH
+            elif groups[i] == 30 or groups[i] == 100:
+                censor = self.NO_CENS_THRESH
+            elif groups[i] == 50:
+                censor = self.GAUGE_CENS_THRESH
+
+            self.censors.append(censor)
+
+        self.censors = np.array(self.censors)
+
 
         self.bjp_wrapper = None
         self.bjp_fitting_data = None
 
 
-    def prepare_bjp_data(self, fit_data, group, trformer=None):
+    def prepare_bjp_data(self, fit_data, group, censor, trformer=None):
 
         fit_data = np.array(fit_data, copy=True)
 
-
         # Set the censored and missing data flags and adjust data accordingly
         flags = np.ones(fit_data.shape, dtype='intc', order='C')*self.OBSERVED_DATA_CODE
-
-        if group == 10 or group == 20:
-            censor = self.ZERO_CENS_THRESH
-        elif group == 30 or group == 100:
-            censor = self.NO_CENS_THRESH
-        elif group == 50:
-            censor = self.GAUGE_CENS_THRESH
 
         censor_idx = fit_data <= censor
         flags[censor_idx] = self.CENSORED_DATA_CODE
@@ -106,20 +113,22 @@ class BjpModel:
 
 
 
-    def prepare_fc_data(self, predictor_values, bjp_fitting_data):
+    def prepare_fc_data(self, predictor_values, transformers):
+
+
+        assert len(transformers) == len(self.censors)
 
         if np.any(np.isnan(predictor_values)) or np.any(predictor_values == self.MISSING_DATA_VALUE):
             print("Warning: Predictor is NaN or missing")
             predictor_values[np.isnan(predictor_values)] = -9999.0
 
         # should we limit extreme new predictor values ???
-
         bjp_data_new = {}
         bjp_data_new['tr_data'] = np.array([self.MISSING_DATA_VALUE]*self.num_vars)
         bjp_data_new['flags'] = np.array([self.MISSING_DATA_CODE]*self.num_vars, dtype='intc')
 
-        bjp_data_new['censor'] = np.array([bjp_fitting_data['censor'][i] for i in range(self.num_vars)])
-        bjp_data_new['tr_censor'] = np.array([bjp_fitting_data['tr_censor'][i] for i in range(self.num_vars)])
+        bjp_data_new['censor'] = np.array([self.censors[i] for i in range(self.num_vars)])
+        bjp_data_new['tr_censor'] = np.array([transformers[i].transform_one(transformers[i].rescale_one(self.censors[i])) for i in range(self.num_vars)])
 
 
         for i in range(len(predictor_values)):
@@ -128,12 +137,13 @@ class BjpModel:
                 bjp_data_new['flags'][i] = self.MISSING_DATA_CODE
             elif predictor_values[i] <= bjp_data_new['censor'][i]:
                 bjp_data_new['flags'][i] = self.CENSORED_DATA_CODE
-                predictor_values[i] = bjp_fitting_data['censor'][i]
+                predictor_values[i] = self.censors[i]
             else:
                 bjp_data_new['flags'][i] = self.OBSERVED_DATA_CODE
 
+            trformer = transformers[i]
+            bjp_data_new['trformer'] = trformer
 
-            trformer = bjp_fitting_data['trformer'][i]
             rs_pred = trformer.rescale_one(predictor_values[i])
             tr_pred = trformer.transform_one(rs_pred)
 
@@ -174,7 +184,7 @@ class BjpModel:
 
 
 
-    def sample(self, obs, groups):
+    def sample(self, obs):
 
         # obs has dimensions num_vars x num_time_periods
 
@@ -182,7 +192,7 @@ class BjpModel:
 
         for i in range(self.num_vars):
 
-            bjp_fitting_data.append(self.prepare_bjp_data(obs[i], groups[i]))
+            bjp_fitting_data.append(self.prepare_bjp_data(obs[i], self.groups[i], self.censors[i]))
 
         bjp_fitting_data = self.join_ptor_ptand_data(bjp_fitting_data)
 
@@ -201,19 +211,21 @@ class BjpModel:
         return mu, cov, tparams
 
 
+    def forecast(self, predictor_values, transformers, mu, cov, gen_climatology=False, convert_cens=True):
 
-    def forecast(self, predictor_values, gen_climatology=True, convert_cens=True):
-
-        bjp_fc_data = self.prepare_fc_data(predictor_values, self.bjp_fitting_data)
-        forecasts =  self.bjp_wrapper.forecast(bjp_fc_data['tr_data'], bjp_fc_data['flags'], bjp_fc_data['tr_censor'])
+        self.bjp_wrapper = pybjp.PyBJP(self.num_vars, self.burn, self.chainlength, self.seed)
+        bjp_fc_data = self.prepare_fc_data(predictor_values, transformers)
+        print(bjp_fc_data['tr_data'].dtype, bjp_fc_data['flags'].dtype, bjp_fc_data['tr_censor'].dtype, mu.dtype, cov.dtype, (cov.shape[0] / 2))
+        forecasts = self.bjp_wrapper.forecast2(bjp_fc_data['tr_data'], bjp_fc_data['flags'], bjp_fc_data['tr_censor'], mu.astype(np.float64), cov.astype(np.float64), int(cov.shape[0] / 2))
 
         for i in range(self.num_vars):
-            trformer = self.bjp_fitting_data['trformer'][i]
+            
+            trformer = transformers[i]
 
             forecasts[:, i] = self.inv_transform(forecasts[:, i], trformer)
 
             if convert_cens:
-                cens = bjp_fc_data['censor'][i]
+                cens = self.censors[i]
                 forecasts[:, i][forecasts[:, i] < cens] = cens
 
         res = {}
