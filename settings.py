@@ -21,6 +21,7 @@ PARAMS_AGG = PARAMS_PATH + 'PARAMS_aggregated.nc'
 
 FORECAST_PATH = TEST_PATH + 'forecast/'
 FORECAST_GRID_PATH = FORECAST_PATH + 'grids/'
+FORECAST_AGG = FORECAST_PATH + 'FORECAST_aggregated.nc'
 
 SMIPS_CONTAINER = 'SMIPSv0.5.nc'  # name of container in SMIPS_PATH
 

@@ -7,8 +7,6 @@ import glob
 import xarray as xr
 import numpy as np
 
-aggregated_fc = 'FORECAST_aggregated.nc'
-
 
 def create_cube(cubepathname, date=None, lat=None, lon=None):
     # Lat and lon are optional bc not needed for aggregated file
@@ -64,7 +62,6 @@ def create_cube(cubepathname, date=None, lat=None, lon=None):
 
 
 def add_to_netcdf_cube(cubename, lead_time, data):
-
     cubepathname = os.path.join(settings.FORECAST_GRID_PATH, cubename)
     _, lat, lon = cubename.rstrip('.nc').split('_')
     if not os.path.exists(cubepathname):
@@ -79,7 +76,8 @@ def add_to_netcdf_cube(cubename, lead_time, data):
 
 def add_to_netcdf_cube_from_files(files, cubename):
     # aggregate forecasts
-    cubepathname = os.path.join(settings.FORECAST_PATH, cubename)
+    #cubepathname = os.path.join(settings.FORECAST_PATH, cubename)
+    cubepathname = cubename
     if not os.path.exists(cubepathname):
         print('NetCDF Cube doesn\'t exist at ', cubepathname)
         create_cube(cubepathname)
@@ -109,5 +107,5 @@ def add_to_netcdf_cube_from_files(files, cubename):
 def aggregate_netcdf(date):
     path = settings.FORECAST_GRID_PATH
     files = [file for file in glob.glob(path + '*.nc')]
-    create_cube(settings.FORECAST_PATH + aggregated_fc, date)
-    add_to_netcdf_cube_from_files(cubename=aggregated_fc, files=files)
+    create_cube(settings.FORECAST_AGG, date)
+    add_to_netcdf_cube_from_files(files, settings.FORECAST_AGG)

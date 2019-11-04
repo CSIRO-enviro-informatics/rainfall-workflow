@@ -20,20 +20,13 @@
 # 	- Hydrological model
 # 		○ Output: 7 day ensemble soil moisture forecast (API)
 
-from datetime import date, timedelta
-
-import numpy as np
-import matplotlib.pyplot as plt
-import xarray as xr
+import datetime
 
 import data_transfer
 import iris_regridding
 import transform
-import bjpmodel
 import source_cube, forecast_cube, parameter_cube
-import settings
-import pytrans
-import math
+
 
 def reassemble():
     """
@@ -63,7 +56,7 @@ def create_forecast_files(d):
             transform.transform_forecast(lat, lon, d, mu, cov, tp)
 
 
-def create_parameter_grid_files():
+def create_parameter_files():
     lats, lons = source_cube.get_lat_lon_values()
     #np.random.seed(50)
     #lat_sample = np.random.choice(lat, y)
@@ -96,5 +89,5 @@ def daily_jobs():
 
 if __name__ == '__main__':
     daily_jobs()
-    create_parameter_grid_files()
-    create_forecast_files(date(2019, 1, 1))
+    create_parameter_files()
+    create_forecast_files(datetime.date(2019, 1, 1))

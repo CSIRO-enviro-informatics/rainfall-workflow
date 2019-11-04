@@ -10,8 +10,6 @@ import math
 import bjpmodel
 import transform
 
-aggregated_params = 'PARAMS_aggregated.nc'
-
 
 def read_parameters(lat, lon):
     """
@@ -178,7 +176,8 @@ def add_to_netcdf_cube(cubename, lead_time, normal_data, transformed_data):
 
 def add_to_netcdf_cube_from_files(files, cubename):
     # add parameter data to aggregate netcdf cube
-    cubepathname = os.path.join(settings.PARAMS_PATH, cubename)
+    #cubepathname = os.path.join(settings.PARAMS_PATH, cubename)
+    cubepathname = cubename
     if not os.path.exists(cubepathname):
         print('NetCDF Cube doesn\'t exist at ', cubepathname)
         create_cube(cubepathname)
@@ -213,4 +212,4 @@ def aggregate_netcdf():
     # aggregate parameter files
     path = settings.PARAMS_GRIDS_PATH
     files = [file for file in glob.glob(path + '*.nc')]
-    add_to_netcdf_cube_from_files(cubename=aggregated_params, files=files)
+    add_to_netcdf_cube_from_files(files, settings.PARAMS_AGG)
