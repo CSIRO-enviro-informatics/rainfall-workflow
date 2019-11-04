@@ -33,6 +33,7 @@ import bjpmodel
 from cube import add_to_netcdf_cube, aggregate_netcdf
 import settings
 import pytrans
+import math
 
 def daily_jobs():
     """
@@ -86,7 +87,9 @@ def data_processing(lat, lon):
         # Save mu, cov, and transformation parameters to netcdf file for that grid point
         # Can edit functions in cube.py to accommodate this new kind of file
         normal_params = np.concatenate((mu, np.asarray(cov)), axis=1)
-        #tparams = [1, 2, 3, 4, 5, 6]
+        tparams[0, 1] = math.log(tparams[0, 1])
+        tparams[1, 1] = math.log(tparams[1, 1])
+
         add_to_netcdf_cube(settings.params_filename(lat, lon), normal_data=normal_params, transformed_data=tparams, lead_time=lt)
 
         #print('lead time', lt, mu.shape, cov.shape, mu[0], np.asarray(cov[0]))
@@ -106,20 +109,24 @@ def get_lat_lon_values():
     return refcube.lat.values, refcube.lon.values
 
 
-def read_params(lat, lon):
+def read_params(file, lat, lon):
     """
     Read the mu and cov data from agg netcdf and reconstruct arrays with the same shape and order as returned from BJP
     sample. Both [1000][2]
     :return:
     """
-    file = settings.PARAMS_GRIDS_PATH + settings.params_filename(lat, lon)
-    cube = xr.load_dataset(file)
-    for lt in range(9):
-        params = cube.n_parameters.values
-        mu = params[lt, :, :2]
-        cov = params[lt, :, 2:]
-        # send these back into bjp
+    p = xr.open_dataset(file)
+    p_grid = p.sel(lat=lat, lon=lon)
+    if np.isnan(p_grid['n_parameters']).all():
+        return [0], [0]
 
+    tp = p_grid['t_parameters']
+    nop = p_grid['n_parameters']
+
+    tp[:, 0, 1] = [math.exp(x) for x in tp[:, 0, 1].values]
+    tp[:, 1, 1] = [math.exp(x) for x in tp[:, 1, 1].values]
+
+    return nop, tp
 
 def transform_forecast(d):
     """
@@ -137,39 +144,46 @@ def transform_forecast(d):
     """
 
     # read an access-g date
-    fc_file = settings.ACCESS_G_AGG
-    fc = xr.open_dataset(fc_file, decode_times=False)
-    datedelta = (d - date(1900, 1, 1)).days
-    data = fc.sel(time=datedelta)
+    #fc_file = settings.ACCESS_G_AGG
+    #fc = xr.open_dataset(fc_file, decode_times=False)
+    #datedelta = (d - date(1900, 1, 1)).days
+    #data = fc.sel(time=datedelta)
 
     # read a sample grid point transform parameter set
     p_file = settings.PARAMS_AGG
-    p = xr.open_dataset(p_file)
-    lat = -19.21875
-    lon = 123.046875
-    p_grid = p.sel(lat=lat, lon=lon)
-    tp = p_grid['t_parameters']
-    np = p_grid['n_parameters']
-    for lt in range(9):
-        predictor_tp = tp[lt][0]
-        predictand_tp = tp[lt][1]
+    lats, lons = get_lat_lon_values()
 
-        # mu and cov
-        mu = np[lt, :, :2]
-        cov = np[lt, :, 2:]
-        data = transform.extract_data(lat, lon, d, lt)
+    for lat in lats:
+        if lat == -19.21875:
 
-        # create a pylogsinh object and then call forecast with it and the t_parameters
-        bjp_model = bjpmodel.BjpModel(2, [10, 10], burn=1000, chainlength=2000, seed='random')
+            for lon in lons:
+                if lon == 123.046875:
+                    nop, tp = read_params(p_file, lat, lon)
+                    if nop.shape == (1,) or tp.shape == (1,):
+                        continue
 
-        # transformers
-        ptort = pytrans.PyLogSinh(predictor_tp[0], predictor_tp[1], predictor_tp[2])
-        ptandt = pytrans.PyLogSinh(predictand_tp[0], predictand_tp[1], predictand_tp[2])
+                    for lt in range(9):
+                        predictor_tp = tp[lt][0]
+                        predictand_tp = tp[lt][1]
 
-        res = bjp_model.forecast([data], [ptort, ptandt], mu.data, cov.data)
-        print(res)
-        # the returned trans data is your forecast
-        add_to_netcdf_cube(settings.forecast_filename(lat, lon), normal_data=res, lead_time=lt)
+                        # mu and cov
+                        mu = nop[lt, :, :2]
+                        cov = nop[lt, :, 2:]
+                        data = transform.extract_data(lat, lon, d, lt)
+
+                        # create a pylogsinh object and then call forecast with it and the t_parameters
+                        bjp_model = bjpmodel.BjpModel(2, [10, 10], burn=1000, chainlength=2000, seed='random')
+
+                        # transformers
+                        ptort = pytrans.PyLogSinh(predictor_tp[0], predictor_tp[1], predictor_tp[2])
+                        ptandt = pytrans.PyLogSinh(predictand_tp[0], predictand_tp[1], predictand_tp[2])
+
+                        res = bjp_model.forecast([data], [ptort, ptandt], mu.data, cov.data)
+                        fc = res['forecast'][:, 1]
+                        # the returned trans data is your forecast
+                        add_to_netcdf_cube(settings.forecast_filename(lat, lon), normal_data=fc, lead_time=lt, date=d)
+
+    aggregate_netcdf(forecast=True)
 
 
 def create_grid_param_files():
@@ -190,8 +204,7 @@ def create_grid_param_files():
 
 if __name__ == '__main__':
     #daily_jobs()
-    create_grid_param_files()
-    #aggregate_netcdf(params=True)
-    #data_processing(-19.21875, 123.046875)
-    #read_params(-19.21875, 123.046875)
-    #transform_forecast(date(2019, 1, 1))
+    #create_grid_param_files()
+    data_processing(-19.21875, 123.046875)
+    aggregate_netcdf(params=True)
+    transform_forecast(date(2019, 1, 1)) #-19.21875, 123.046875

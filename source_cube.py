@@ -11,6 +11,7 @@ import numpy as np
 aggregated_smips = 'SMIPS.nc'
 aggregated_access_g = 'ACCESS-G.nc'
 aggregated_params = 'PARAMS_aggregated.nc'
+aggregated_fc = 'FORECAST_aggregated.nc'
 
 smips_name = 'SMIPS'
 access_name = 'ACCESS'
@@ -105,7 +106,7 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
 
         outcube.history = 'Created ' + datetime.datetime.now().isoformat()
 
-        outcube.createDimension('np_set', None) # may be 2000
+        outcube.createDimension('np_set', 2000) # may be 2000
         outcube.createDimension('tp_set', 2)
         np_set = outcube.createVariable('np_set', 'u4', 'np_set')
         tp_set = outcube.createVariable('tp_set', 'u4', 'tp_set')
@@ -123,7 +124,7 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
         lead = outcube.createVariable('lead_time', 'u4', 'lead_time')
 
         lead[:] = range(9)
-        np_set[:] = range(1000)
+        np_set[:] = range(2000)
         tp_set[:] = range(2)
         np_types[:] = range(5)
         tp_types[:] = range(3)
@@ -143,9 +144,9 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             xlon = outcube.createVariable('lon', 'f4', 'lon')
 
             # data variables
-            outcube.createVariable('n_parameters', 'f', ('lat', 'lon', 'lead_time', 'np_set', 'np_types'),
+            outcube.createVariable('n_parameters', 'f8', ('lat', 'lon', 'lead_time', 'np_set', 'np_types'),
                                    least_significant_digit=3, fill_value=-9999.0)
-            outcube.createVariable('t_parameters', 'f', ('lat', 'lon', 'lead_time', 'tp_set', 'tp_types'),
+            outcube.createVariable('t_parameters', 'f8', ('lat', 'lon', 'lead_time', 'tp_set', 'tp_types'),
                                    least_significant_digit=3, fill_value=-9999.0)
 
         else:
@@ -155,9 +156,9 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
             outcube.description = 'Normal and transformed parameters for grid at: ' + lat + ', ' + lon
 
             # data variables
-            outcube.createVariable('n_parameters', 'f', ('lead_time', 'np_set', 'np_types'), least_significant_digit=3,
+            outcube.createVariable('n_parameters', 'f8', ('lead_time', 'np_set', 'np_types'), least_significant_digit=3,
                                    fill_value=-9999.0)
-            outcube.createVariable('t_parameters', 'f', ('lead_time', 'tp_set', 'tp_types'), least_significant_digit=3,
+            outcube.createVariable('t_parameters', 'f8', ('lead_time', 'tp_set', 'tp_types'), least_significant_digit=3,
                                    fill_value=-9999.0)
 
             ylat = outcube.createVariable('lat', 'f4')
@@ -175,35 +176,51 @@ def create_cube(cubepathname, startdate=None, enddate=None, lat=None, lon=None):
     elif 'forecast' in cubepathname:
         outcube.history = 'Created ' + datetime.datetime.now().isoformat()
 
-        outcube.createDimension('time', None)  # unlimited
-        nctime = outcube.createVariable('time', 'u4', 'time')
-        nctime.setncatts({"long_name": "time", "units": "days since 1900-01-01 00:00:00.0 -0:00", "calendar": "gregorian"})
+        #outcube.createDimension('time', None)  # unlimited
+        #nctime = outcube.createVariable('time', 'u4', 'time')
+        #nctime.setncatts({"long_name": "time", "units": "days since 1900-01-01 00:00:00.0 -0:00", "calendar": "gregorian"})
 
         outcube.createDimension('ensemble_member', 1000)
-        outcube.createVariable('ensemble_member', 'u4', 'ensemble_member')
+        ens = outcube.createVariable('ensemble_member', 'u4', 'ensemble_member')
 
         outcube.createDimension('lead_time', 9)
-        outcube.createVariable('lead_time', 'u4', 'lead_time')
+        lead = outcube.createVariable('lead_time', 'u4', 'lead_time')
 
-        # data variables
-        outcube.createVariable('forecast_value', 'f', ('time', 'lead_time', 'ensemble_member'), least_significant_digit=3,
-                               fill_value=-9999.0)
+        if 'aggregate' in cubepathname:
+            lats, lons = get_lat_lon_values()
+            rows = len(lats)
+            cols = len(lons)
 
-        ylat = outcube.createVariable('lat', 'f4')
-        xlon = outcube.createVariable('lon', 'f4')
+            outcube.description = 'Normal and transformed parameters for entire grid.'
+
+            outcube.createDimension('lon', cols)  # cols
+            outcube.createDimension('lat', rows)  # rows
+            ylat = outcube.createVariable('lat', 'f4', 'lat')
+            xlon = outcube.createVariable('lon', 'f4', 'lon')
+
+            outcube.createVariable('forecast_value', 'f8', ('lat', 'lon', 'lead_time', 'ensemble_member'), least_significant_digit=3,
+                                   fill_value=-9999.0)
+
+            outcube.description = "Post-processed forecast for " + str(startdate)
+            ylat[:], xlon[:] = get_lat_lon_values()
+
+        else:
+            ylat = outcube.createVariable('lat', 'f4')
+            xlon = outcube.createVariable('lon', 'f4')
+
+            outcube.createVariable('forecast_value', 'f8', ('lead_time', 'ensemble_member'), least_significant_digit=3,
+                                   fill_value=-9999.0)
+
+            outcube.description = 'Post-processed forecast for grid at: ' + lat + ', ' + lon + " on " + str(startdate)
+            ylat[:] = lat
+            xlon[:] = lon
 
         # add attributes
         xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84"})
         ylat.setncatts({"long_name": "latitude", "units": "degrees_north", "proj": "longlat", "datum": "WGS84"})
 
-        if 'aggregate' in cubepathname:
-            outcube.description = "Post-processed forecast"
-            ylat[:], xlon[:] = get_lat_lon_values()
-
-        else:
-            outcube.description = 'Post-processed forecast for grid at: ' + lat + ', ' + lon
-            ylat[:] = lat
-            xlon[:] = lon
+        lead[:] = range(9)
+        ens[:] = range(1000)
 
     outcube.close()
 
@@ -231,9 +248,9 @@ def add_to_netcdf_cube(cubename, normal_data, lead_time, transformed_data=None, 
         outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
         norm = outcube.variables['n_parameters']
-        norm[lead_time, :] = normal_data
+        norm[lead_time, :] = normal_data[:]
         trans = outcube.variables['t_parameters']
-        trans[lead_time, :] = transformed_data
+        trans[lead_time, :] = transformed_data[:]
 
     elif 'forecast' in cubename:
         if not date:
@@ -243,16 +260,16 @@ def add_to_netcdf_cube(cubename, normal_data, lead_time, transformed_data=None, 
         _, lat, lon = cubename.rstrip('.nc').split('_')
         if not os.path.exists(cubepathname):
             print('NetCDF Cube doesn\'t exist at ', cubepathname)
-            create_cube(cubepathname, lat=lat, lon=lon)
+            create_cube(cubepathname, lat=lat, lon=lon, startdate=date)
         outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
-        tme = outcube.variables['time']
-        startbase = datetime.date(1900, 1, 1)
-        datedelta = (date - startbase).days
-        dateindex = len(tme.values) + 1
-        tme[dateindex] = datedelta
+        #tme = outcube.variables['time']
+        #startbase = datetime.date(1900, 1, 1)
+        #datedelta = (date - startbase).days
+        #dateindex = len(tme.values) + 1
+        #tme[dateindex] = datedelta
         forecast = outcube.variables['forecast_value']
-        forecast[dateindex, lead_time, :] = normal_data
+        forecast[lead_time, :] = normal_data
 
     outcube.close()
 
@@ -375,12 +392,12 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             trans = outcube.variables['t_parameters']
             trans[lat_index, lon_index, :] = trans_datain[:]
 
-    elif 'forecast' in cubename:
+    elif 'forecast' or 'FORECAST' in cubename:
         # aggregate forecasts
         cubepathname = os.path.join(settings.FORECAST_PATH, cubename)
         if not os.path.exists(cubepathname):
             print('NetCDF Cube doesn\'t exist at ', cubepathname)
-            create_cube(cubepathname)
+            create_cube(cubepathname, startdate=end_date)
         outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
         lats, lons = get_lat_lon_values()
@@ -393,13 +410,13 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             lat, lon = round(float(lat), 2), round(float(lon), 2)  # rounding lat and lon values to sacrifice accuracy for consistency in the dictionary lookup
 
             dataset = xr.open_dataset(file, decode_times=False)
-            forecast_data = dataset['forecast_values'].values
+            forecast_data = dataset['forecast_value'].values
             fc_datain = np.where(forecast_data == 9.96921e+36, -9999.0, forecast_data)
 
             print('Exporting to netCDF for grid (lat, lon): ', lat, ",", lon)
             lat_index = lat_indices[lat]
             lon_index = lon_indices[lon]
-            data = outcube.variables['forecast_values']
+            data = outcube.variables['forecast_value']
             data[lat_index, lon_index, :] = fc_datain[:]
 
     outcube.close()
@@ -407,7 +424,7 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
     return True, True
 
 
-def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=False, accessg=False, params=False):
+def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=False, accessg=False, params=False, forecast=False):
 
     if smips or accessg:
         if smips:
@@ -461,6 +478,11 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
         path = settings.PARAMS_GRIDS_PATH
         files = [file for file in glob.glob(path +'*.nc')]
         add_to_netcdf_cube_from_files(cubename=aggregated_params, files=files)
+
+    elif forecast:
+        path = settings.FORECAST_GRID_PATH
+        files = [file for file in glob.glob(path + '*.nc')]
+        add_to_netcdf_cube_from_files(cubename=aggregated_fc, files=files, end_date = start_date)
 
 
 if __name__ == '__main__':
