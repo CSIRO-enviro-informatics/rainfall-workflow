@@ -84,6 +84,7 @@ class BjpModel:
                 print(np.nanmax(fit_data_for_trans))
                 trformer = pytrans.PyLogSinh(scale=5.0/np.max(fit_data_for_trans))
                 trformer.optim_params(fit_data_for_trans, censor, do_rescale=True, is_map=True)
+
             elif group == 20 or group == 30:
                 trformer = pytrans.PyYJT(scale=1.0/np.std(fit_data_for_trans), shift=-1.0*np.mean(fit_data_for_trans))
                 trformer.optim_params(fit_data_for_trans, censor, do_rescale=True, is_map=True)
@@ -146,7 +147,7 @@ class BjpModel:
 
             rs_pred = trformer.rescale_one(predictor_values[i])
             tr_pred = trformer.transform_one(rs_pred)
-
+            print(predictor_values[i], tr_pred, rs_pred, trformer.get_params())
             bjp_data_new['tr_data'][i] = tr_pred
 
 

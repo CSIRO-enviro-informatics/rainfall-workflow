@@ -5,4 +5,8 @@ test/
 conda_env/
 regridding_examples/
 __pycache__/
-
+new_bjp/
+transformation/
+temp/
+*.ipynb
+*.so
