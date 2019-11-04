@@ -30,7 +30,7 @@ import data_transfer
 import iris_regridding
 import transform
 import bjpmodel
-from cube import add_to_netcdf_cube, aggregate_netcdf
+import source_cube, forecast_cube, parameter_cube
 import settings
 import pytrans
 import math
@@ -44,8 +44,8 @@ def daily_jobs():
     """
     data_transfer.transfer_files()
     iris_regridding.run_regridding()
-    aggregate_netcdf(smips=True)
-    aggregate_netcdf(accessg=True)
+    source_cube.aggregate_netcdf(smips=True)
+    source_cube.aggregate_netcdf(accessg=True)
     print('Daily jobs done')
 
 
@@ -85,12 +85,12 @@ def data_processing(lat, lon):
         #mu, cov = bjp_model.sample(fdata, [10, 10])
 
         # Save mu, cov, and transformation parameters to netcdf file for that grid point
-        # Can edit functions in cube.py to accommodate this new kind of file
+        # Can edit functions in source_cube.py to accommodate this new kind of file
         normal_params = np.concatenate((mu, np.asarray(cov)), axis=1)
         tparams[0, 1] = math.log(tparams[0, 1])
         tparams[1, 1] = math.log(tparams[1, 1])
 
-        add_to_netcdf_cube(settings.params_filename(lat, lon), normal_data=normal_params, transformed_data=tparams, lead_time=lt)
+        parameter_cube.add_to_netcdf_cube(settings.params_filename(lat, lon), lt, normal_params, tparams)
 
         #print('lead time', lt, mu.shape, cov.shape, mu[0], np.asarray(cov[0]))
 
@@ -118,13 +118,13 @@ def read_params(file, lat, lon):
     p = xr.open_dataset(file)
     p_grid = p.sel(lat=lat, lon=lon)
     if np.isnan(p_grid['n_parameters']).all():
-        return [0], [0]
+        return 0
 
     tp = p_grid['t_parameters']
     nop = p_grid['n_parameters']
 
-    tp[:, 0, 1] = [math.exp(x) for x in tp[:, 0, 1].values]
-    tp[:, 1, 1] = [math.exp(x) for x in tp[:, 1, 1].values]
+    tp[:, 0, 1] = np.array([math.exp(x) for x in tp[:, 0, 1].values])
+    tp[:, 1, 1] = np.array([math.exp(x) for x in tp[:, 1, 1].values])
 
     return nop, tp
 
@@ -159,13 +159,13 @@ def transform_forecast(d):
             for lon in lons:
                 if lon == 123.046875:
                     nop, tp = read_params(p_file, lat, lon)
-                    if nop.shape == (1,) or tp.shape == (1,):
-                        continue
 
                     for lt in range(9):
-                        predictor_tp = tp[lt][0]
-                        predictand_tp = tp[lt][1]
-
+                        try:
+                            predictor_tp = tp[lt][0]
+                            predictand_tp = tp[lt][1]
+                        except TypeError:
+                            break
                         # mu and cov
                         mu = nop[lt, :, :2]
                         cov = nop[lt, :, 2:]
@@ -181,9 +181,9 @@ def transform_forecast(d):
                         res = bjp_model.forecast([data], [ptort, ptandt], mu.data, cov.data)
                         fc = res['forecast'][:, 1]
                         # the returned trans data is your forecast
-                        add_to_netcdf_cube(settings.forecast_filename(lat, lon), normal_data=fc, lead_time=lt, date=d)
+                        forecast_cube.add_to_netcdf_cube(settings.forecast_filename(lat, lon), lt, fc)
 
-    aggregate_netcdf(forecast=True)
+    forecast_cube.aggregate_netcdf(d)
 
 
 def create_grid_param_files():
@@ -203,8 +203,8 @@ def create_grid_param_files():
 
 
 if __name__ == '__main__':
-    #daily_jobs()
+    daily_jobs()
     #create_grid_param_files()
     data_processing(-19.21875, 123.046875)
-    aggregate_netcdf(params=True)
+    parameter_cube.aggregate_netcdf()
     transform_forecast(date(2019, 1, 1)) #-19.21875, 123.046875
