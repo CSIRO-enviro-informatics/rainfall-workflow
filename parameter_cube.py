@@ -6,15 +6,78 @@ import settings
 import xarray as xr
 import glob
 import numpy as np
+import math
+import bjpmodel
+import transform
 
 aggregated_params = 'PARAMS_aggregated.nc'
 
 
-# create cube for grid parameters
-# also check paramaters if you're creating a single-grid cube or a whole-grid cube for aggregation
-# Lat and lon are optional bc not needed for aggregated file
+def read_parameters(lat, lon):
+    """
+    Read the mu, cov, and transform parameter data from netcdf and reconstruct arrays with the same shape and order as returned from BJP
+    sample.
+    :param: lat, lon - coordinates for the grid whose params to read
+    :return:  mu[9][1000][2], cov[9][1000][3], tp[9][2][3]
+    """
+    file = settings.PARAMS_AGG
+    p = xr.open_dataset(file)
+    p_grid = p.sel(lat=lat, lon=lon)
+    if np.isnan(p_grid['n_parameters']).all():
+        return 0
+
+    tp = p_grid['t_parameters']
+    nop = p_grid['n_parameters']
+
+    tp[:, 0, 1] = np.array([math.exp(x) for x in tp[:, 0, 1].values])
+    tp[:, 1, 1] = np.array([math.exp(x) for x in tp[:, 1, 1].values])
+
+    mu = nop[:, :, :2]
+    cov = nop[:, :, 2:]
+
+    return mu, cov, tp
+
+
+def generate_forecast_parameters(lat, lon):
+    """
+    For each grid point: Create post-processed forecast
+    1. Extract symmetric grid point(s) from observed and forecast and transform
+    2. Model fit/forecast
+        - Transform predictor and predictand time series to normal distributions
+        - TODO: RPP-SC - call fit() during training , and forecast() during regular use
+            - Model parameters from fit() are saved and loaded to forecast()
+        -  Output: post-processed 9 day time series forecast for grid point.
+            - Dimensions: lead time (9), ensemble member (1000)
+    """
+
+    start_date = settings.ACCESS_STARTDATE
+    end_date = datetime.date(2019, 8, 1)
+    fit_data = transform.extract_fit_data(lat, lon, start_date, end_date)
+
+   # Don't process the data if a timezone wasn't found because it's in the ocean
+    if fit_data == 'Location over water':
+        return
+
+    bjp_model = bjpmodel.BjpModel(2, [10, 10], burn=1000, chainlength=3000, seed='random')
+
+    for lt in range(9):
+
+        fdata = np.array([fit_data['ptor'][:, lt], fit_data['ptand'][:, lt] ], order='C')
+
+        mu, cov, tparams = bjp_model.sample(fdata)
+
+        # Save mu, cov, and transformation parameters to netcdf file for that grid point
+        normal_params = np.concatenate((mu, np.asarray(cov)), axis=1)
+        tparams[0, 1] = math.log(tparams[0, 1])
+        tparams[1, 1] = math.log(tparams[1, 1])
+
+        add_to_netcdf_cube(settings.params_filename(lat, lon), lt, normal_params, tparams)
+
 
 def create_cube(cubepathname, lat=None, lon=None):
+    # create cube for grid parameters
+    # also check paramaters if you're creating a single-grid cube or a whole-grid cube for aggregation
+    # Lat and lon are optional bc not needed for aggregated file
     if os.path.exists(cubepathname):
         os.remove(cubepathname)
     outcube = Dataset(cubepathname, mode='w', format='NETCDF4')

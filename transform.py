@@ -9,34 +9,32 @@ import pytrans
 import settings
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
+import bjpmodel
+import forecast_cube
 
-def transform(data):
-    """
-    Transform (normalise) a 1D time series representing a geographical grid point.
-    Parameters:
-        data -- 1D time series with valid float data and possible nans
-    Return: transformed data
-    """
 
-    data = np.double(data)
-    optim_data = data[np.logical_not(np.isnan(data))]
-    lcens = 0.0
-    scale = 5.0/np.max(optim_data)
-    transform = pytrans.PyLogSinh(1.0, 1.0, scale)
+def transform_forecast(lat, lon, d, mu, cov, tp):
+    # read a sample grid point transform parameter set
 
-    # Create a data subset without nans for optim_params
-    optim = transform.optim_params(optim_data, lcens, True, True)
-    trans_data = transform.transform_many(transform.rescale_many(data))
+    for lt in range(9):
+        predictor_tp = tp[lt][0]
+        predictand_tp = tp[lt][1]
 
-    #print(trans_data.min(), np.amin(trans_data), np.nanmin(trans_data), trans_data.max(), np.amax(trans_data), np.nanmax(trans_data))
-    if np.isnan(trans_data.min()):
-        print(trans_data)
+        data = extract_data(lat, lon, d, lt)
 
-    # Plot histograms of the original and transformed data
-    # plt.hist(data, bins=50, density=True, alpha=0.5, label='orig', range=(np.nanmin(data), np.nanmax(data)))
-    # plt.hist(trans_data, bins=50, density=True, alpha=0.5, label='trans_orig', range=(np.nanmin(trans_data), np.nanmax(trans_data)))
-    # plt.show()
-    return trans_data
+        # create a pylogsinh object and then call forecast with it and the t_parameters
+        bjp_model = bjpmodel.BjpModel(2, [10, 10], burn=1000, chainlength=2000, seed='random')
+
+        # transformers
+        ptort = pytrans.PyLogSinh(predictor_tp[0], predictor_tp[1], predictor_tp[2])
+        ptandt = pytrans.PyLogSinh(predictand_tp[0], predictand_tp[1], predictand_tp[2])
+
+        res = bjp_model.forecast([data], [ptort, ptandt], mu[lt].data, cov[lt].data)
+        fc = res['forecast'][:, 1]
+        # the returned trans data is your forecast
+        forecast_cube.add_to_netcdf_cube(settings.forecast_filename(lat, lon), lt, fc)
+
+    forecast_cube.aggregate_netcdf(d)
 
 
 def extract_fit_data(lat, lon, start_date, end_date):
@@ -129,7 +127,6 @@ def extract_fit_data(lat, lon, start_date, end_date):
 
 
 def extract_data(lat, lon, cdate, lead_time):
-
     # check for timezone first in case of not usable location
     # find the time zone of SMIPS grid point to line up SMIPS data with ACCESS-G data
     tf = TimezoneFinder(in_memory=True)
@@ -176,68 +173,31 @@ def extract_data(lat, lon, cdate, lead_time):
     return fc
 
 
-def transformation(lat, lon):
+def transform(data):
     """
-    # Extract geographical grid point timeseries of SMIPS and ACCESS-G data and transform it.
-    SMIPS: just take the entire time series
-    ACCESS-G: take the time series 1-9 days out in the lead time dimension.
+    Deprecated.
+    Transform (normalise) a 1D time series representing a geographical grid point.
+    Parameters:
+        data -- 1D time series with valid float data and possible nans
+    Return: transformed data
     """
-    access_g_file = settings.ACCESS_G_AGG
-    smips_file = settings.SMIPS_AGG
 
-    observed = xr.open_dataset(smips_file, decode_times=False)
-    forecast = xr.open_dataset(access_g_file, decode_times=False)
+    data = np.double(data)
+    optim_data = data[np.logical_not(np.isnan(data))]
+    lcens = 0.0
+    scale = 5.0/np.max(optim_data)
+    transform = pytrans.PyLogSinh(1.0, 1.0, scale)
 
-    print(observed['time'])
-    print(forecast['time'])
+    # Create a data subset without nans for optim_params
+    optim = transform.optim_params(optim_data, lcens, True, True)
+    trans_data = transform.transform_many(transform.rescale_many(data))
 
-    exit()
+    #print(trans_data.min(), np.amin(trans_data), np.nanmin(trans_data), trans_data.max(), np.amax(trans_data), np.nanmax(trans_data))
+    if np.isnan(trans_data.min()):
+        print(trans_data)
 
-    for lat_i in range(observed['lat'].size):
-        for lon_i in range(observed['lon'].size):
-
-            lat = float(observed['lat'][lat_i].data)
-            lon = float(observed['lon'][lon_i].data)
-
-            observed_grid = observed['blended_precipitation'][:, lat_i, lon_i].data
-            #check if there's no data. if so, try next point
-            if np.unique(observed_grid).size == 1:
-                continue
-            trans_observed = transform(observed_grid)
-            trans_forecasts = []
-
-            # find the time zone of SMIPS grid point to line up SMIPS data with ACCESS-G data
-            tf = TimezoneFinder(in_memory=True)
-            timezone = tf.timezone_at(lng=lon, lat=lat)
-
-
-            if ('Brisbane' or 'Lindeman') in timezone:
-                utc_offset = 10
-            elif 'Melbourne' in timezone:
-                utc_offset = 10
-            elif 'Adelaide' in timezone:
-                utc_offset = 9.5
-            elif 'Darwin' in timezone:
-                utc_offset = 9.5
-            elif 'Hobart' in timezone:
-                utc_offset = 10
-            elif ('Eucla' or 'Perth') in timezone:
-                utc_offset = 8
-            elif 'Sydney' in timezone:
-                utc_offset = 10
-            else:
-                print('Unknown timezone?')
-            print('Timezone found')
-
-            for day in range(1, 10):
-                base_i = 24*(day-1) + int(utc_offset)  # day start
-                forecast_i = 24*day + int(utc_offset)  # day end
-                base_grid = forecast['accum_prcp'][:, base_i, lat_i, lon_i].data
-                accum_grid = forecast['accum_prcp'][:, forecast_i, lat_i, lon_i].data
-                base_grid[base_grid <= -9999.0] = np.nan
-                accum_grid[accum_grid <= -9999.0] = np.nan
-
-                # subtract the previous day's accumulated value
-                forecast_grid = accum_grid - base_grid
-                trans_forecast = transform(forecast_grid)
-                trans_forecasts.append(trans_forecast)
+    # Plot histograms of the original and transformed data
+    # plt.hist(data, bins=50, density=True, alpha=0.5, label='orig', range=(np.nanmin(data), np.nanmax(data)))
+    # plt.hist(trans_data, bins=50, density=True, alpha=0.5, label='trans_orig', range=(np.nanmin(trans_data), np.nanmax(trans_data)))
+    # plt.show()
+    return trans_data

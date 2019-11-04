@@ -6,7 +6,6 @@ import glob
 from dates import get_dates, convert_date
 import datetime
 import numpy as np
-#from workflow import get_lat_lon_values
 
 aggregated_smips = 'SMIPS.nc'
 aggregated_access_g = 'ACCESS-G.nc'
