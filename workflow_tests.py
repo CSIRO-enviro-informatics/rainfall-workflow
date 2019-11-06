@@ -35,14 +35,12 @@ def test_forecast_file_creation():
 
 
 def test_forecast_aggregation():
-    # delete file
     fname = settings.FORECAST_AGG
     delete_file(fname)
     forecast_cube.aggregate_netcdf(test_date)
 
 
 def test_parameter_aggregation():
-    # delete file
     fname = settings.PARAMS_AGG
     delete_file(fname)
     parameter_cube.aggregate_netcdf()

@@ -28,15 +28,28 @@ import transform
 import source_cube, forecast_cube, parameter_cube
 
 
-def reassemble():
+def shuffle():
     """
     Reassemble grid: For each grid point: "shuffle" to restore spatial correlations
     Output: shuffled 7 day forecast for grid point
     """
+    # create a date template [1000][9]
+        # fill it with unique possible dates, then in the lead time dimension increment the date by each day
+    # for each grid cell
+        # read in the SMIPS data for those dates
+    # pass the SMIPS dates and
     print('todo')
 
 
-def create_forecast_files(d):
+def grid_date_forecast(date, lat, lon):
+    #try:
+    mu, cov, tp = parameter_cube.read_parameters(lat, lon)
+    #except ValueError:
+    #    raise
+    transform.transform_forecast(lat, lon, date, mu, cov, tp)
+
+
+def create_forecast_files(date):
     """
     Read the ACCESS-G data for a given forecast date, transform it using the predictor transformation parameters saved
     to netcdf, and save the resulting forecast to netcdf.
@@ -49,11 +62,9 @@ def create_forecast_files(d):
     for lat in lats:
         for lon in lons:
             try:
-                mu, cov, tp = parameter_cube.read_parameters(lat, lon)
-            except TypeError:
+                grid_date_forecast(date, lat, lon)
+            except ValueError:
                 continue
-
-            transform.transform_forecast(lat, lon, d, mu, cov, tp)
 
 
 def create_parameter_files():
@@ -89,5 +100,5 @@ def daily_jobs():
 
 if __name__ == '__main__':
     daily_jobs()
-    create_parameter_files()
+    #create_parameter_files()
     create_forecast_files(datetime.date(2019, 1, 1))

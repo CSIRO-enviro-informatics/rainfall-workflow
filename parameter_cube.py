@@ -22,7 +22,7 @@ def read_parameters(lat, lon):
     p = xr.open_dataset(file)
     p_grid = p.sel(lat=lat, lon=lon)
     if np.isnan(p_grid['n_parameters']).all():
-        return 0
+        raise ValueError('Parameters arrays are empty - write them to file first')
 
     tp = p_grid['t_parameters']
     nop = p_grid['n_parameters']
