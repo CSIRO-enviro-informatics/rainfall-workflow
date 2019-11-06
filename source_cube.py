@@ -12,6 +12,22 @@ aggregated_access_g = 'ACCESS-G.nc'
 
 smips_name = 'SMIPS'
 access_name = 'ACCESS'
+day_before_yesterday = datetime.date.today() - datetime.timedelta(days=2)
+yesterday = datetime.date.today() - datetime.timedelta(days=1)
+
+
+def get_datedeltas(cubepathname=settings.ACCESS_G_AGG, end_date=yesterday):
+    refcube = Dataset(cubepathname, mode='a', format='NETCDF4')
+    time = refcube.get_variables_by_attributes(long_name='time')
+    if len(time) == 0:
+        print('error: no time variable found')
+        return False, False
+    delta = datetime.timedelta(int(time[0][0]))
+    startdelta = delta.days
+    startbase = datetime.date(1900, 1, 1)
+    datedelta = (end_date - startbase).days
+
+    return range(startdelta, datedelta)
 
 
 def get_lat_lon_values():
@@ -246,3 +262,12 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
 if __name__ == '__main__':
     aggregate_netcdf(smips=True)
     aggregate_netcdf(accessg=True) #start_date=datetime.date(2017, 5, 17), end_date=datetime.date(2017, 5, 18))
+
+
+#class SourceCube:
+#    def __init__(self, cubename):
+#        self.cubename = cubename
+#
+#    refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
+#    lats = refcube.lat.values
+#    lons = refcube.lon.values

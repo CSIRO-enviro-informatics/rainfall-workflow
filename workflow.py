@@ -26,6 +26,8 @@ import data_transfer
 import iris_regridding
 import transform
 import source_cube, forecast_cube, parameter_cube
+import random
+
 
 
 def shuffle():
@@ -33,19 +35,30 @@ def shuffle():
     Reassemble grid: For each grid point: "shuffle" to restore spatial correlations
     Output: shuffled 7 day forecast for grid point
     """
-    # create a date template [1000][9]
-        # fill it with unique possible dates, then in the lead time dimension increment the date by each day
+    # create a date template [9][1000]
+        # fill the 1000 dimension variable with unique possible dates, then in the lead time dimension increment the date by each day
+    datedeltas = source_cube.get_datedeltas()
+    date_sample = random.sample(datedeltas, 1000)
+
+    # open big smips file
+    # open big forecast file
+
     # for each grid cell
-        # read in the SMIPS data for those dates
-    # pass the SMIPS dates and
+    lats, lons = source_cube.get_lat_lon_values()
+    for lat in lats:
+        for lon in lons:
+            # make arrays based on datetemplate to save date data
+            for date in datedeltas:
+                # read in the SMIPS data for the date and save to array
+                # also read in the forecast data for that date and save to array
+
+            # pass the SMIPS and forecast data arrays to shuffle function
+
     print('todo')
 
 
 def grid_date_forecast(date, lat, lon):
-    #try:
     mu, cov, tp = parameter_cube.read_parameters(lat, lon)
-    #except ValueError:
-    #    raise
     transform.transform_forecast(lat, lon, date, mu, cov, tp)
 
 

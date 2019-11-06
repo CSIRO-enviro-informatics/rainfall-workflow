@@ -3,6 +3,8 @@ import settings
 import datetime
 import parameter_cube, forecast_cube
 import transform
+import xarray as xr
+import netCDF4
 
 test_coords = [-19.21875, 123.046875]
 test_date = datetime.date(2019, 1, 1)
@@ -45,6 +47,11 @@ def test_parameter_aggregation():
     delete_file(fname)
     parameter_cube.aggregate_netcdf()
 
+
+def test_netcdf_merge():
+    path = 'temp/forecast/grids/*.nc'
+    merged = xr.open_mfdataset(path, combine='nested', concat_dim='coords')
+    merged.to_netcdf(format='NETCDF4', engine=('netcdf4'))  # not seeing my netcdf library???
 
 if __name__ == '__main__':
     test_parameter_file_creation()

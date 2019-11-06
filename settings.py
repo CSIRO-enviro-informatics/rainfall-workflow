@@ -47,5 +47,5 @@ def smips_filename(str_date):
 def params_filename(lat, lon):
     return 'params_' + str(lat) +'_' + str(lon) + '.nc'
 
-def forecast_filename(lat, lon):
-    return 'forecast_'+ str(lat) +'_' + str(lon) + '.nc'
+def forecast_filename(str_date, lat, lon):
+    return 'forecast_'+ str_date + '_' + str(lat) +'_' + str(lon) + '.nc'

@@ -34,8 +34,6 @@ def transform_forecast(lat, lon, d, mu, cov, tp):
         # the returned trans data is your forecast
         forecast_cube.add_to_netcdf_cube(settings.forecast_filename(lat, lon), lt, fc)
 
-    forecast_cube.aggregate_netcdf(d)
-
 
 def extract_fit_data(lat, lon, start_date, end_date):
 

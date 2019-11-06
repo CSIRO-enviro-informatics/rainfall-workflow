@@ -7,6 +7,12 @@ import glob
 import xarray as xr
 import numpy as np
 
+# Create a netCDF file for forecasts
+# Grid (lat/lon coordinate) or aggregate (containing all coordinates)
+# Dimensions:
+    # Aggregate: lat (154) x lon (136) x lead_time (9) x ensemble member (1000)
+    # Grid: lead_time (9) x ensemble member (1000)
+
 
 def create_cube(cubepathname, date=None, lat=None, lon=None):
     # Lat and lon are optional bc not needed for aggregated file
@@ -27,29 +33,25 @@ def create_cube(cubepathname, date=None, lat=None, lon=None):
         rows = len(lats)
         cols = len(lons)
 
-        outcube.description = 'Normal and transformed parameters for entire grid.'
-
         outcube.createDimension('lon', cols)  # cols
         outcube.createDimension('lat', rows)  # rows
         ylat = outcube.createVariable('lat', 'f4', 'lat')
         xlon = outcube.createVariable('lon', 'f4', 'lon')
+        ylat[:], xlon[:] = get_lat_lon_values()
 
         outcube.createVariable('forecast_value', 'f8', ('lat', 'lon', 'lead_time', 'ensemble_member'), least_significant_digit=3,
                                fill_value=-9999.0)
-
         outcube.description = "Post-processed forecast for " + str(date)
-        ylat[:], xlon[:] = get_lat_lon_values()
 
     else:
         ylat = outcube.createVariable('lat', 'f4')
         xlon = outcube.createVariable('lon', 'f4')
+        ylat[:] = lat
+        xlon[:] = lon
 
         outcube.createVariable('forecast_value', 'f8', ('lead_time', 'ensemble_member'), least_significant_digit=3,
                                fill_value=-9999.0)
-
         outcube.description = 'Post-processed forecast for grid at: ' + lat + ', ' + lon + " on " + str(date)
-        ylat[:] = lat
-        xlon[:] = lon
 
     # add attributes
     xlon.setncatts({"long_name": "longitude", "units": "degrees_east", "proj": "longlat", "datum": "WGS84"})
@@ -57,7 +59,6 @@ def create_cube(cubepathname, date=None, lat=None, lon=None):
 
     lead[:] = range(9)
     ens[:] = range(1000)
-
     outcube.close()
 
 
