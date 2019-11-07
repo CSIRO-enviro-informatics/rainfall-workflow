@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 
-def create_str_date(date):
+def date2str(date):
     """ Converts a datetime.date object to str in the form DDMMYYYY"""
     str_year = str(date.year)
     str_month = pad_with_zeros([str(date.month)])[0]

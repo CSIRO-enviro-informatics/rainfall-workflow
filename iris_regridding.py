@@ -6,7 +6,7 @@ import iris
 import settings
 import xarray as xr
 import datetime
-from dates import create_str_date, get_dates, get_start_date, convert_date
+from dates import date2str, get_dates, get_start_date, convert_date
 
 smips_file = settings.SMIPS_PATH + settings.SMIPS_CONTAINER  # original
 smips_nc = xr.open_dataset(smips_file)
@@ -86,7 +86,7 @@ def run_regridding(update_only=True, start_date=False, end_date=False):
     if not update_only:
         for date in smips_nc.time:
             date = convert_date(date)  # from np datetime to datetime datetime
-            str_date = create_str_date(date)  # for file name
+            str_date = date2str(date)  # for file name
             timestep = extract_timestep(smips_nc, date)  # this is the daily smips cube
             regridded = regrid(timestep, regridder)  # regridding to match access-g shape
             save_timestep(regridded, str_date)  # save to disk

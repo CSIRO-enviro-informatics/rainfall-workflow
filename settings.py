@@ -3,7 +3,7 @@ import datetime
 from dates import date2str
 
 if 'Linux' in platform.platform():
-    ACCESS_G_PATH = '/OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/'  # access-g write path
+    ACCESS_G_PATH = '//OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/'  # access-g write path
     SMIPS_PATH = '/OSM/CBR/LW_SATSOILMOIST/processed/SMIPSv0.5/thredds/public/SMIPS/'  # path to source SMIPS container
     SMIPS_DEST_PATH = '//OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/'  # smips write path
     SMIPS_AGG = '//OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/SMIPS.nc'  # path to aggregated smips file
@@ -64,10 +64,10 @@ def forecast_agg(str_date):
 
 
 def date_type_check(date):
-    if type(date) == 'str':
+    if type(date) is str:
         return date
     else:
-        if type(date) == 'datetime.date' or type(date) == 'datetime.datetime':
+        if type(date) is datetime.date or type(date) is datetime.datetime:
             return date2str(date)
         else:
             raise TypeError('Date is of the wrong type: ' + type(date))

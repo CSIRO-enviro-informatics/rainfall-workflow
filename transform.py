@@ -32,7 +32,7 @@ def transform_forecast(lat, lon, d, mu, cov, tp):
         res = bjp_model.forecast([data], [ptort, ptandt], mu[lt].data, cov[lt].data)
         fc = res['forecast'][:, 1]
         # the returned trans data is your forecast
-        forecast_cube.add_to_netcdf_cube(settings.forecast_filename(lat, lon), lt, fc)
+        forecast_cube.add_to_netcdf_cube(settings.forecast_filename(d, lat, lon), lt, fc)
 
 
 def extract_fit_data(lat, lon, start_date, end_date):

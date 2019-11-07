@@ -22,7 +22,7 @@ class TestDates:
     datetimedate = datetime.date(1970, 1, 1)
 
     def test_create_str_date(self):
-        result = dates.create_str_date(self.date)
+        result = dates.date2str(self.date)
         assert result == self.str_date
 
     def test_get_dates(self):
