@@ -1,11 +1,12 @@
 import os
 import settings
 import datetime
-import parameter_cube, forecast_cube
+import parameter_cube, forecast_cube, source_cube
 import transform
 import xarray as xr
 import netCDF4
 from dates import date2str
+import workflow
 
 test_coords = [-19.21875, 123.046875]
 test_date = datetime.date(2019, 1, 1)
@@ -49,6 +50,14 @@ def test_forecast_aggregation():
     delete_file(fname)
     forecast_cube.aggregate_netcdf(test_date)
 
+
+def test_shuffle():
+    date_sample = source_cube.sample_date_indices()
+    lat_dict, lon_dict = source_cube.get_lat_lon_indices()
+    lat = lat_dict[round(float(test_coords[0]), 2)]
+    lon = lon_dict[round(float(test_coords[1]), 2)]
+    delete_file(settings.shuffled_forecast_filename(test_date, lat, lon))
+    workflow.shuffle(lat, lon, date_sample)
 
 #def test_netcdf_merge():
 #    path = 'temp/forecast/grids/*.nc'

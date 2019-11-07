@@ -64,7 +64,11 @@ def create_cube(cubepathname, date=None, lat=None, lon=None):
 
 
 def add_to_netcdf_cube(cubename, lead_time, data):
-    cubepathname = os.path.join(settings.FORECAST_GRID_PATH, cubename)
+    if 'shuffled' in cubename:
+        cubepathname = os.path.join(settings.FORECAST_SHUFFLE_PATH, cubename)
+    else:
+        cubepathname = os.path.join(settings.FORECAST_GRID_PATH, cubename)
+
     _, datestr, lat, lon = cubename.rstrip('.nc').split('_')
     if not os.path.exists(cubepathname):
         print('NetCDF Cube doesn\'t exist at ', cubepathname)
@@ -106,8 +110,7 @@ def add_to_netcdf_cube_from_files(files, cubename):
     outcube.close()
 
 
-def aggregate_netcdf(date):
-    path = settings.FORECAST_GRID_PATH
+def aggregate_netcdf(date, path=settings.FORECAST_GRID_PATH):
     files = [file for file in glob.glob(path + '*.nc')]
     fname = settings.forecast_agg(date2str(date))
     create_cube(fname, date)

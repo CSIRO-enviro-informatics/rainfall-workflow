@@ -3,10 +3,10 @@ import datetime
 from dates import date2str
 
 if 'Linux' in platform.platform():
-    ACCESS_G_PATH = '//OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/'  # access-g write path
+    ACCESS_G_PATH = '/OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/'  # access-g write path
     SMIPS_PATH = '/OSM/CBR/LW_SATSOILMOIST/processed/SMIPSv0.5/thredds/public/SMIPS/'  # path to source SMIPS container
-    SMIPS_DEST_PATH = '//OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/'  # smips write path
-    SMIPS_AGG = '//OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/SMIPS.nc'  # path to aggregated smips file
+    SMIPS_DEST_PATH = '/OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/'  # smips write path
+    SMIPS_AGG = '/OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/SMIPS.nc'  # path to aggregated smips file
     ACCESS_G_AGG = '/OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/ACCESS-G.nc'  # path to aggregated access-g file
 
 else:  # Windows
@@ -22,6 +22,7 @@ PARAMS_AGG = PARAMS_PATH + 'PARAMS_aggregated.nc'
 
 FORECAST_PATH = TEST_PATH + 'forecast/'
 FORECAST_GRID_PATH = FORECAST_PATH + 'grids/'
+FORECAST_SHUFFLE_PATH = FORECAST_PATH + 'shuffled/'
 #FORECAST_AGG = FORECAST_PATH + 'FORECAST_aggregated.nc'
 
 SMIPS_CONTAINER = 'SMIPSv0.5.nc'  # name of container in SMIPS_PATH
@@ -58,9 +59,19 @@ def forecast_filename(str_date, lat, lon):
     return 'forecast_'+ str_date + '_' + str(lat) +'_' + str(lon) + '.nc'
 
 
+def shuffled_forecast_filename(str_date, lat, lon):
+    str_date = date_type_check(str_date)
+    return 'shuffledforecast_' + str_date + '_' + str(lat) +'_' + str(lon) + '.nc'
+
+
 def forecast_agg(str_date):
     str_date = date_type_check(str_date)
     return FORECAST_PATH + str_date + '_FORECAST_aggregated.nc'
+
+
+def shuffled_forecast_agg(str_date):
+    str_date = date_type_check(str_date)
+    return FORECAST_PATH + 'shuffled_' +  str_date + '_FORECAST_aggregated.nc'
 
 
 def date_type_check(date):

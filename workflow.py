@@ -27,33 +27,76 @@ import iris_regridding
 import transform
 import source_cube, forecast_cube, parameter_cube
 import random
+import xarray as xr
+import settings
+import numpy as np
+
+placeholder_date = datetime.date(2019, 1, 1)
 
 
+def create_date_template():  # not going to use this?
+    # create a date template [9][1000]
+    # fill the 1000 dimension variable with unique possible dates, then in the lead time dimension increment the date by each day
+    datedeltas = source_cube.get_datedeltas(cubepathname=settings.SMIPS_AGG)
 
-def shuffle():
+    date_sample = random.sample(datedeltas, 1000)
+
+    increment_date = lambda x, y: y + datetime.timedelta(days=1)
+
+    date_template = np.zeros((9, 1000))
+    date_template[0, :] = date_sample
+
+    for i in range(1, 8):
+        date_template[i, :] = increment_date(date_template[i, :], date_template[i - 1, :])
+
+    print(date_template)
+    return date_template
+
+
+def shuffle(lat, lon, date_index_sample):
+    observed = xr.open_dataset(settings.SMIPS_AGG, decode_times=False)
+    fc = xr.open_dataset(settings.forecast_agg(placeholder_date))
+    lats, lons = source_cube.get_lat_lon_values()
+
+    obs_pre_shuffle = np.zeros((9, 1000))
+    coord_observed = observed.blended_precipitation.values[:, lat, lon]
+    fc_pre_shuffle = fc.forecast_value.values[lat, lon]
+
+    for i in range(len(date_index_sample)):
+        for lead in range(9):
+            # read in the SMIPS data for the date and save to array
+            obs_pre_shuffle[lead, i] = coord_observed[date_index_sample[i] + lead]
+
+    # make and fill smips array
+    for lead in range(9):
+        fc_to_shuffle = fc_pre_shuffle[lead]
+        obs_to_shuffle = obs_pre_shuffle[lead]
+        # pass the SMIPS and forecast data arrays to shuffle function
+
+        shuffled_fc = fc_to_shuffle  # schaake_shuffle(fc_to_shuffle, obs_to_shuffle)
+        # save shuffled_fc to netcdf
+        forecast_cube.add_to_netcdf_cube(settings.shuffled_forecast_filename(placeholder_date, lats[lat], lats[lon]),
+                                         lead, shuffled_fc)
+
+
+def create_shuffled_forecasts():
     """
     Reassemble grid: For each grid point: "shuffle" to restore spatial correlations
     Output: shuffled 7 day forecast for grid point
     """
-    # create a date template [9][1000]
-        # fill the 1000 dimension variable with unique possible dates, then in the lead time dimension increment the date by each day
-    datedeltas = source_cube.get_datedeltas()
-    date_sample = random.sample(datedeltas, 1000)
+    #date_template = create_date_template()
 
-    # open big smips file
-    # open big forecast file
+    # don't actually need dates, but date indices from the smips file. we're only referencing smips
+    date_index_sample = source_cube.sample_date_indices()  # need this to be created once and then always be the same
 
     # for each grid cell
     lats, lons = source_cube.get_lat_lon_values()
-    for lat in lats:
-        for lon in lons:
-            # make arrays based on datetemplate to save date data
-            for date in datedeltas:
-                # read in the SMIPS data for the date and save to array
-                # also read in the forecast data for that date and save to array
 
-            # pass the SMIPS and forecast data arrays to shuffle function
+    for lat in range(len(lats)):
+        for lon in range(len(lons)):
+            shuffle(lat, lon, date_index_sample)
 
+    forecast_cube.aggregate_netcdf(placeholder_date, settings.FORECAST_SHUFFLE_PATH)
     print('todo')
 
 
@@ -114,4 +157,5 @@ def daily_jobs():
 if __name__ == '__main__':
     daily_jobs()
     #create_parameter_files()
-    create_forecast_files(datetime.date(2019, 1, 1))
+    #create_forecast_files(datetime.date(2019, 1, 1))
+    shuffle()

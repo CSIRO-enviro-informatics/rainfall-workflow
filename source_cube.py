@@ -6,6 +6,7 @@ import glob
 from dates import get_dates, convert_date
 import datetime
 import numpy as np
+import random
 
 aggregated_smips = 'SMIPS.nc'
 aggregated_access_g = 'ACCESS-G.nc'
@@ -14,6 +15,15 @@ smips_name = 'SMIPS'
 access_name = 'ACCESS'
 day_before_yesterday = datetime.date.today() - datetime.timedelta(days=2)
 yesterday = datetime.date.today() - datetime.timedelta(days=1)
+
+
+
+def sample_date_indices():
+    observed = xr.open_dataset(settings.SMIPS_AGG, decode_times=False)
+    max_date_index = len(observed.time.values) - 8 # to ensure we don't get the last value and don't have "lead time" values for it
+    date_index_sample = random.sample(range(max_date_index), 1000)
+    return date_index_sample
+
 
 
 def get_datedeltas(cubepathname=settings.ACCESS_G_AGG, end_date=yesterday):
@@ -33,6 +43,14 @@ def get_datedeltas(cubepathname=settings.ACCESS_G_AGG, end_date=yesterday):
 def get_lat_lon_values():
     refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
     return refcube.lat.values, refcube.lon.values
+
+
+def get_lat_lon_indices():
+    lats, lons = get_lat_lon_values()
+    lat_indices = {round(float(lat), 2): index for (lat, index) in zip(lats, range(len(lats)))}
+    lon_indices = {round(float(lon), 2): index for (lon, index) in zip(lons, range(len(lons)))}
+    return lat_indices, lon_indices
+
 
 
 def create_cube(cubepathname, startdate=None, enddate=None):
@@ -235,8 +253,8 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
                     start = datetime.date(1900, 1, 1)
                     start_date = start + datetime.timedelta(int(latest)) + datetime.timedelta(days=1)
                     nc.close()
-                    if start_date >= settings.yesterday:
-                        return print('SMIPS aggregation is already up to date')
+                    if start_date >= datetime.date.today():
+                        return print('ACCESS-G aggregation is already up to date')
 
                 elif smips:
                     nc = xr.open_dataset(path + aggregate_file)
@@ -244,7 +262,7 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
                     start_date = convert_date(latest) + datetime.timedelta(days=1)
                     nc.close()
                     if start_date >= settings.yesterday:
-                        return print('ACCESS-G aggregation is already up to date')
+                        return print('SMIPS aggregation is already up to date')
 
             dates = get_dates(start_date=start_date, end_date=end_date)
             files = [path + files(date) for date in dates]
