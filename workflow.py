@@ -30,27 +30,15 @@ import random
 import xarray as xr
 import settings
 import numpy as np
+from shuffle import shuffle_random_ties
 
 placeholder_date = datetime.date(2019, 1, 1)
 
-
-def create_date_template():  # not going to use this?
-    # create a date template [9][1000]
-    # fill the 1000 dimension variable with unique possible dates, then in the lead time dimension increment the date by each day
-    datedeltas = source_cube.get_datedeltas(cubepathname=settings.SMIPS_AGG)
-
-    date_sample = random.sample(datedeltas, 1000)
-
-    increment_date = lambda x, y: y + datetime.timedelta(days=1)
-
-    date_template = np.zeros((9, 1000))
-    date_template[0, :] = date_sample
-
-    for i in range(1, 8):
-        date_template[i, :] = increment_date(date_template[i, :], date_template[i - 1, :])
-
-    print(date_template)
-    return date_template
+# nsw bounding coords
+# West Bounding Longitude: 140.6947
+# East Bounding Longitude: 153.7687
+# North Bounding Latitude: -27.9675
+# South Bounding Latitude: -37.6423
 
 
 def shuffle(lat, lon, date_index_sample):
@@ -73,7 +61,7 @@ def shuffle(lat, lon, date_index_sample):
         obs_to_shuffle = obs_pre_shuffle[lead]
         # pass the SMIPS and forecast data arrays to shuffle function
 
-        shuffled_fc = fc_to_shuffle  # schaake_shuffle(fc_to_shuffle, obs_to_shuffle)
+        shuffled_fc = shuffle_random_ties(fc_to_shuffle, obs_to_shuffle)
         # save shuffled_fc to netcdf
         forecast_cube.add_to_netcdf_cube(settings.shuffled_forecast_filename(placeholder_date, lats[lat], lats[lon]),
                                          lead, shuffled_fc)
@@ -93,11 +81,12 @@ def create_shuffled_forecasts():
     lats, lons = source_cube.get_lat_lon_values()
 
     for lat in range(len(lats)):
-        for lon in range(len(lons)):
-            shuffle(lat, lon, date_index_sample)
+        if -37.6423 <= lats[lat] <= -27.9675 :
+            for lon in range(len(lons)):
+                if 140.6947 <= lons[lon] <= 153.7687:
+                    shuffle(lat, lon, date_index_sample)
 
     forecast_cube.aggregate_netcdf(placeholder_date, settings.FORECAST_SHUFFLE_PATH)
-    print('todo')
 
 
 def grid_date_forecast(date, lat, lon):
@@ -116,11 +105,14 @@ def create_forecast_files(date):
     lats, lons = source_cube.get_lat_lon_values()
 
     for lat in lats:
-        for lon in lons:
-            try:
-                grid_date_forecast(date, lat, lon)
-            except ValueError:
-                continue
+        if -37.6423 <= lat <= -27.9675:
+            for lon in lons:
+                if 140.6947 <= lon <= 153.7687:
+                    try:
+                        grid_date_forecast(date, lat, lon)
+                    except ValueError:
+                        continue
+    forecast_cube.aggregate_netcdf(date)
 
 
 def create_parameter_files():
@@ -130,12 +122,11 @@ def create_parameter_files():
     #lon_sample = np.random.choice(lon, y)
 
     for lat in lats:
-        #if lat == -19.21875:
-        #if lat < -18.984375: #temporary thing bc it was interrupted, to not make it do a whole lot over again
-        if -43.59375 <= lat <= -10.07813: # min/max values where lat stops containing all NaN
+        if -37.6423 <= lat <= -27.9675 : #temporary thing bc it was interrupted, to not make it do a whole lot over again
+            #if -43.59375 <= lat <= -10.07813: # min/max values where lat stops containing all NaN
             for lon in lons:
-                    #if lon == 123.046875:
-                if 113.2031 <= lon <= 153.6328:
+                if 140.6947 <= lon <= 153.7687:
+                #if 113.2031 <= lon <= 153.6328:
                     parameter_cube.generate_forecast_parameters(lat, lon)
     parameter_cube.aggregate_netcdf()
 
@@ -155,7 +146,27 @@ def daily_jobs():
 
 
 if __name__ == '__main__':
-    daily_jobs()
-    #create_parameter_files()
-    #create_forecast_files(datetime.date(2019, 1, 1))
-    shuffle()
+    #daily_jobs()
+    create_parameter_files()
+    create_forecast_files(datetime.date(2019, 11, 1))
+    create_shuffled_forecasts()
+    print('Done NSW')
+
+
+# def create_date_template():  # not going to use this?
+#     # create a date template [9][1000]
+#     # fill the 1000 dimension variable with unique possible dates, then in the lead time dimension increment the date by each day
+#     datedeltas = source_cube.get_datedeltas(cubepathname=settings.SMIPS_AGG)
+#
+#     date_sample = random.sample(datedeltas, 1000)
+#
+#     increment_date = lambda x, y: y + datetime.timedelta(days=1)
+#
+#     date_template = np.zeros((9, 1000))
+#     date_template[0, :] = date_sample
+#
+#     for i in range(1, 8):
+#         date_template[i, :] = increment_date(date_template[i, :], date_template[i - 1, :])
+#
+#     print(date_template)
+#     return date_template
