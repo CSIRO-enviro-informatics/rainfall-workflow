@@ -35,10 +35,10 @@ from shuffle import shuffle_random_ties
 placeholder_date = datetime.date(2019, 11, 1)
 
 # nsw bounding coords
-# West Bounding Longitude: 140.6947
-# East Bounding Longitude: 153.7687
-# North Bounding Latitude: -27.9675
-# South Bounding Latitude: -37.6423
+left_lon = 140.6947
+right_lon = 153.7687
+top_lat = -27.9675
+bot_lat = -37.6423
 
 
 def shuffle(lat, lon, date_index_sample):
@@ -81,9 +81,9 @@ def create_shuffled_forecasts():
     lats, lons = source_cube.get_lat_lon_values()
 
     for lat in range(len(lats)):
-        if -37.6423 <= lats[lat] <= -27.9675 :
+        if bot_lat <= lats[lat] <= top_lat :
             for lon in range(len(lons)):
-                if 140.6947 <= lons[lon] <= 153.7687:
+                if left_lon <= lons[lon] <= right_lon:
                     shuffle(lat, lon, date_index_sample)
 
     forecast_cube.aggregate_netcdf(placeholder_date, settings.FORECAST_SHUFFLE_PATH)
@@ -105,9 +105,9 @@ def create_forecast_files(date):
     lats, lons = source_cube.get_lat_lon_values()
 
     for lat in lats:
-        if -37.6423 <= lat <= -27.9675:
+        if bot_lat <= lat <= top_lat:
             for lon in lons:
-                if 140.6947 <= lon <= 153.7687:
+                if left_lon <= lon <= right_lon:
                     try:
                         grid_date_forecast(date, lat, lon)
                     except ValueError:
@@ -122,10 +122,10 @@ def create_parameter_files():
     #lon_sample = np.random.choice(lon, y)
 
     for lat in lats:
-        if -37.6423 <= lat <= -27.9675 : #temporary thing bc it was interrupted, to not make it do a whole lot over again
+        if bot_lat <= lat <= top_lat : #temporary thing bc it was interrupted, to not make it do a whole lot over again
             #if -43.59375 <= lat <= -10.07813: # min/max values where lat stops containing all NaN
             for lon in lons:
-                if 140.6947 <= lon <= 153.7687:
+                if left_lon <= lon <= right_lon:
                 #if 113.2031 <= lon <= 153.6328:
                     parameter_cube.generate_forecast_parameters(lat, lon)
     parameter_cube.aggregate_netcdf()
