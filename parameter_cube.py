@@ -29,6 +29,8 @@ def read_parameters(lat, lon):
 
     tp[:, 0, 1] = np.array([math.exp(x) for x in tp[:, 0, 1].values])
     tp[:, 1, 1] = np.array([math.exp(x) for x in tp[:, 1, 1].values])
+    tp[:, 0, 2] = np.array([math.exp(x) for x in tp[:, 0, 2].values])
+    tp[:, 1, 2] = np.array([math.exp(x) for x in tp[:, 1, 2].values])
 
     mu = nop[:, :, :2]
     cov = nop[:, :, 2:]
@@ -66,8 +68,10 @@ def generate_forecast_parameters(lat, lon):
 
         # Save mu, cov, and transformation parameters to netcdf file for that grid point
         normal_params = np.concatenate((mu, np.asarray(cov)), axis=1)
-        tparams[0, 1] = math.log(tparams[0, 1])
+        tparams[0, 1] = math.log(tparams[0, 1]) # save epsilon as a log because it is small - prevent loss of data
         tparams[1, 1] = math.log(tparams[1, 1])
+        tparams[0, 2] = math.log(tparams[0, 2]) # save scaling factor as log for the same reason
+        tparams[1, 2] = math.log(tparams[1, 2])
 
         add_to_netcdf_cube(settings.params_filename(lat, lon), lt, normal_params, tparams)
 
