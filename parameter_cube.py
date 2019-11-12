@@ -20,7 +20,7 @@ def read_parameters(lat, lon):
     """
     file = settings.PARAMS_AGG
     p = xr.open_dataset(file)
-    p_grid = p.sel(lat=lat, lon=lon)
+    p_grid = p.sel(lat=lat, lon=lon, method='nearest')
     if np.isnan(p_grid['n_parameters']).all():
         raise ValueError('Parameters arrays are empty - write them to file first')
 

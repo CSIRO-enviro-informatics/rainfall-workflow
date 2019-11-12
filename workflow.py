@@ -32,7 +32,7 @@ import settings
 import numpy as np
 from shuffle import shuffle_random_ties
 
-placeholder_date = datetime.date(2019, 1, 1)
+placeholder_date = datetime.date(2019, 11, 1)
 
 # nsw bounding coords
 # West Bounding Longitude: 140.6947
@@ -63,7 +63,7 @@ def shuffle(lat, lon, date_index_sample):
 
         shuffled_fc = shuffle_random_ties(fc_to_shuffle, obs_to_shuffle)
         # save shuffled_fc to netcdf
-        forecast_cube.add_to_netcdf_cube(settings.shuffled_forecast_filename(placeholder_date, lats[lat], lats[lon]),
+        forecast_cube.add_to_netcdf_cube(settings.shuffled_forecast_filename(placeholder_date, lats[lat], lons[lon]),
                                          lead, shuffled_fc)
 
 
@@ -147,9 +147,11 @@ def daily_jobs():
 
 if __name__ == '__main__':
     #daily_jobs()
-    create_parameter_files()
-    create_forecast_files(datetime.date(2019, 11, 1))
+    #create_parameter_files()
+    #create_forecast_files(placeholder_date)
     create_shuffled_forecasts()
+    forecast_cube.aggregate_netcdf(placeholder_date, settings.FORECAST_SHUFFLE_PATH)
+
     print('Done NSW')
 
 

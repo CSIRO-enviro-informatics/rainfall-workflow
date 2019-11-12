@@ -8,8 +8,10 @@ import netCDF4
 from dates import date2str
 import workflow
 
-test_coords = [-19.21875, 123.046875]
-test_date = datetime.date(2019, 1, 1)
+#test_coords = [-36.5625, 145.54688]
+#test_coords = [-34.6875, 143.08594]
+test_coords = [-36.5625, 147.3047]
+test_date = workflow.placeholder_date
 
 # CAUTION: test functions will delete the files they are overwriting
 
@@ -58,6 +60,12 @@ def test_shuffle():
     lon = lon_dict[round(float(test_coords[1]), 2)]
     delete_file(settings.shuffled_forecast_filename(test_date, lat, lon))
     workflow.shuffle(lat, lon, date_sample)
+
+
+def test_shuffle_aggregation():
+    delete_file(settings.shuffled_forecast_agg(test_date))
+    forecast_cube.aggregate_netcdf(test_date, settings.FORECAST_SHUFFLE_PATH)
+
 
 #def test_netcdf_merge():
 #    path = 'temp/forecast/grids/*.nc'

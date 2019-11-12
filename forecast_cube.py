@@ -1,4 +1,4 @@
-from source_cube import get_lat_lon_values
+from source_cube import get_lat_lon_values, get_lat_lon_indices
 import os
 from netCDF4 import Dataset
 import datetime
@@ -89,9 +89,8 @@ def add_to_netcdf_cube_from_files(files, cubename):
         create_cube(cubepathname)
     outcube = Dataset(cubepathname, mode='a', format='NETCDF4')
 
-    lats, lons = get_lat_lon_values()
-    lat_indices = {round(float(lat), 2): index for (lat, index) in zip(lats, range(len(lats)))}
-    lon_indices = {round(float(lon), 2): index for (lon, index) in zip(lons, range(len(lons)))}
+    #lats, lons = get_lat_lon_values()
+    lat_indices, lon_indices = get_lat_lon_indices()
 
     for file2process in files:
         file = file2process
@@ -112,6 +111,9 @@ def add_to_netcdf_cube_from_files(files, cubename):
 
 def aggregate_netcdf(date, path=settings.FORECAST_GRID_PATH):
     files = [file for file in glob.glob(path + '*.nc')]
-    fname = settings.forecast_agg(date2str(date))
+    if 'shuffle' in path:
+        fname = settings.shuffled_forecast_agg(date2str(date))
+    else:
+        fname = settings.forecast_agg(date2str(date))
     create_cube(fname, date)
     add_to_netcdf_cube_from_files(files, fname)
