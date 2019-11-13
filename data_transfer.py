@@ -13,7 +13,7 @@ networkPath = settings.ACCESS_G_PATH
 
 def limit_coordinates(netcdf_file_path):
     """Limit coordinates of a global netCDF file to Australia."""
-    data = xr.open_mfdataset(netcdf_file_path)
+    data = xr.open_dataset(netcdf_file_path)
     # aus_data = data.sel(lat=slice(-9.005, -43.735), lon=slice(112.905, 153.995))  # coordinates matching SMIPS
     aus_data = data.sel(lat=slice(-9.140625, -45.0), lon=slice(110.03906, 157.85156)) # coordinates from past bounded access-g data
     return aus_data

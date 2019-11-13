@@ -55,7 +55,7 @@ def get_lat_lon_indices():
 
 def create_cube(cubepathname, startdate=None, enddate=None):
     """
-    Creates a netCDF cube for SMIPS or ACCESS-G aggregated data or for single grid or aggregated params data.
+    Creates a netCDF cube for SMIPS or ACCESS-G aggregated data
     Will delete a cube corresponding to cubepathname if it exists.
     Parameters:
         cubepathname -- indicates if 'SMIPS' or 'ACCESS' of 'params' - name must contain either of these strings
