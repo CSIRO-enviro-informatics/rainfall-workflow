@@ -35,10 +35,16 @@ from shuffle import shuffle_random_ties
 placeholder_date = datetime.date(2019, 11, 1)
 
 # nsw bounding coords
-left_lon = 140.6947
-right_lon = 153.7687
-top_lat = -27.9675
-bot_lat = -37.6423
+# top_lat = -27.9675
+# bot_lat = -37.6423
+# left_lon = 140.6947
+# right_lon = 153.7687
+
+# reptile eye bounding coords
+top_lat = -34.6875
+bot_lat = -37.73438
+left_lon = 146.9531
+right_lon = 150.1172 #-149.7656
 
 
 def shuffle(lat, lon, date_index_sample):
@@ -147,8 +153,8 @@ def daily_jobs():
 
 if __name__ == '__main__':
     #daily_jobs()
-    #create_parameter_files()
-    #create_forecast_files(placeholder_date)
+    create_parameter_files()
+    create_forecast_files(placeholder_date)
     create_shuffled_forecasts()
     forecast_cube.aggregate_netcdf(placeholder_date, settings.FORECAST_SHUFFLE_PATH)
 
