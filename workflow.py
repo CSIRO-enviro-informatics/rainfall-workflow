@@ -31,20 +31,35 @@ import xarray as xr
 import settings
 import numpy as np
 from shuffle import shuffle_random_ties
+from netCDF4 import Dataset
 
 placeholder_date = datetime.date(2019, 11, 1)
 
 # nsw bounding coords
-# top_lat = -27.9675
-# bot_lat = -37.6423
-# left_lon = 140.6947
-# right_lon = 153.7687
+top_lat = -27.9675
+bot_lat = -37.6423
+left_lon = 140.6947
+right_lon = 153.7687
 
 # reptile eye bounding coords
-top_lat = -34.6875
-bot_lat = -37.73438
-left_lon = 146.9531
-right_lon = 150.1172 #-149.7656
+# top_lat = -34.6875
+# bot_lat = -37.73438
+# left_lon = 146.9531
+# right_lon = 150.1172 #-149.7656
+
+
+def check_for_bad_smips():
+    fname = settings.SMIPS_AGG
+    cube = Dataset(fname, mode='a', format='NETCDF4')
+    prcp = cube.variables['blended_precipitation']
+
+    for i in range(cube.dimensions['time'].size):
+        m = np.nanmax(prcp[i])
+        if m > 900:
+            print(i, np.nanmax(prcp[i]))
+            prcp[i] = -9999.0
+
+    cube.close()
 
 
 def shuffle(lat, lon, date_index_sample):
@@ -152,7 +167,8 @@ def daily_jobs():
 
 
 if __name__ == '__main__':
-    #daily_jobs()
+    daily_jobs()
+    check_for_bad_smips()
     create_parameter_files()
     create_forecast_files(placeholder_date)
     create_shuffled_forecasts()
