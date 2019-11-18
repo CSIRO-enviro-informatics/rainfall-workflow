@@ -191,8 +191,8 @@ def extract_data(lat, lon, cdate, lead_time):
 
 
 def transform(data):
-    """
-    Deprecated.
+    """!
+    Deprecated(?).
     Transform (normalise) a 1D time series representing a geographical grid point.
     Parameters:
         data -- 1D time series with valid float data and possible nans

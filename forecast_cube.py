@@ -1,4 +1,4 @@
-"""! Functions for managing forecast data and netCDF4 files."""
+"""! Functions for managing forecast data and netCDF4 files. See parameter_cube.py for similar function documentation."""
 
 from source_cube import get_lat_lon_values, get_lat_lon_indices
 import os

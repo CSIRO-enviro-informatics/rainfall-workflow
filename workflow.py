@@ -1,6 +1,6 @@
 """!
 
-High level functions to execute major jobs.
+Main file. Contains highest level functions to execute major jobs.
 
 Inputs:
 	- SMIPS rainfall 1km grid - predictand (DV) - source: CSIRO
