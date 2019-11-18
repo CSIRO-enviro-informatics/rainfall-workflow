@@ -1,3 +1,5 @@
+"""! Temporarily used functions to deal with SMIPS error data."""
+
 import xarray as xr
 import settings
 import datetime

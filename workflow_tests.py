@@ -1,3 +1,7 @@
+"""!
+Tests to ease the creation and manual validation of netCDF4 files).
+"""
+
 import os
 import settings
 import datetime
@@ -60,7 +64,7 @@ def test_shuffle():
     lat = lat_dict[round(float(test_coords[0]), 2)]
     lon = lon_dict[round(float(test_coords[1]), 2)]
     delete_file(settings.shuffled_forecast_filename(test_date, lat, lon))
-    workflow.shuffle(lat, lon, date_sample)
+    transform.shuffle(lat, lon, date_sample)
 
 
 def test_shuffle_aggregation():

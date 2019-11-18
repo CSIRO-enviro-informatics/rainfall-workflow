@@ -1,3 +1,7 @@
+"""!
+Functions for managing SMIPS and ACCESS-G data and netCDF4 files.
+"""
+
 import settings
 from netCDF4 import Dataset
 import os
@@ -25,7 +29,6 @@ def sample_date_indices():
     return date_index_sample
 
 
-
 def get_datedeltas(cubepathname=settings.ACCESS_G_AGG, end_date=yesterday):
     refcube = Dataset(cubepathname, mode='a', format='NETCDF4')
     time = refcube.get_variables_by_attributes(long_name='time')
@@ -41,11 +44,16 @@ def get_datedeltas(cubepathname=settings.ACCESS_G_AGG, end_date=yesterday):
 
 
 def get_lat_lon_values():
+    """! Return lists of latitude and longitude values."""
     refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
     return refcube.lat.values, refcube.lon.values
 
 
 def get_lat_lon_indices():
+    """!
+    Return dictionaries of latitude and longitude (value, index) as (key, value) pairs.
+    0.2f rounded values are used to avoid key errors.
+    """
     lats, lons = get_lat_lon_values()
     lat_indices = {round(float(lat), 2): index for (lat, index) in zip(lats, range(len(lats)))}
     lon_indices = {round(float(lon), 2): index for (lon, index) in zip(lons, range(len(lons)))}
@@ -54,7 +62,7 @@ def get_lat_lon_indices():
 
 
 def create_cube(cubepathname, startdate=None, enddate=None):
-    """
+    """!
     Creates a netCDF cube for SMIPS or ACCESS-G aggregated data
     Will delete a cube corresponding to cubepathname if it exists.
     Parameters:
@@ -280,12 +288,3 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
 if __name__ == '__main__':
     aggregate_netcdf(smips=True)
     aggregate_netcdf(accessg=True) #start_date=datetime.date(2017, 5, 17), end_date=datetime.date(2017, 5, 18))
-
-
-#class SourceCube:
-#    def __init__(self, cubename):
-#        self.cubename = cubename
-#
-#    refcube = xr.open_dataset(settings.ACCESS_G_PATH + settings.access_g_filename('20190101'))
-#    lats = refcube.lat.values
-#    lons = refcube.lon.values

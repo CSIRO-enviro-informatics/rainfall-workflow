@@ -1,3 +1,5 @@
+"""! Functions for managing parameter data and netCDF4 files."""
+
 from source_cube import get_lat_lon_indices, get_lat_lon_values
 import os
 from netCDF4 import Dataset
@@ -52,11 +54,11 @@ def generate_forecast_parameters(lat, lon):
 
     start_date = settings.ACCESS_STARTDATE
     end_date = datetime.date(2019, 8, 1)
-    fit_data = transform.extract_fit_data(lat, lon, start_date, end_date)
 
+    fit_data = transform.extract_fit_data(lat, lon, start_date, end_date)
    # Don't process the data if a timezone wasn't found because it's in the ocean
-    if fit_data == 'Location over water':
-        return
+    #if fit_data == 'Location over water':
+    #    return
 
     bjp_model = bjpmodel.BjpModel(2, [10, 10], burn=1000, chainlength=3000, seed='random')
 
@@ -154,13 +156,10 @@ def create_cube(cubepathname, lat=None, lon=None):
 def add_to_netcdf_cube(cubename, lead_time, normal_data, transformed_data):
     """
         if params: Adds params data to a single grid cube.
-        if forecast: Adds forecast data to a single grid cube
-        :param cubename: name of the cube - will contain 'params' or 'forecast', and lat and lon info
-        :param normal_data: param data to add; [1000, 5] OR forecast data to add; [1000]
+        :param cubename: name of the cube - will contain lat and lon info
+        :param normal_data: param data to add; [1000, 5]
         :param lead_time: lead time in days; in range(9)
-        :param transformed_data: param data to add; [4]; params only
-        :param date: date for forecast only
-        :return: void
+        :param transformed_data: param data to add; [4]
         """
 
     cubepathname = os.path.join(settings.PARAMS_GRIDS_PATH, cubename)

@@ -1,3 +1,5 @@
+"""! Variables and functions mostly regarding file locations and names."""
+
 import platform
 import datetime
 from dates import date2str

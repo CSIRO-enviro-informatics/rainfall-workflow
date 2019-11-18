@@ -1,4 +1,4 @@
-"""
+"""@file iris_regridding
 
 
 """
@@ -17,11 +17,10 @@ max_lon = max(smips_nc.lon.values)
 
 
 def extract_timestep(nc, date):
-    """
+    """!
     Extract and treat each day seperately - for the future, and because the SMIPS file is so big anything else would cause memory errors.
-    Parameters:
-        nc -- netCDF file
-        date -- date to extract
+    @param nc: SMIPS netCDF file
+    @param date: date to extract
     """
     ncp = nc['Blended Precipitation']
     ncpd = ncp.sel(time=date)
