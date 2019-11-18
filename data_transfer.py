@@ -1,6 +1,6 @@
-# Move ACCESS-G forecast data from NCI to our network
-# limit to Australia only to save space
-# Have to run through terminal due to getpass()
+"""!
+Move ACCESS-G forecast data from NCI to our network. Limit the data to Australia only to save space.
+"""
 
 import pysftp
 import datetime
@@ -10,9 +10,8 @@ from dates import get_dates, get_start_date
 
 networkPath = settings.ACCESS_G_PATH
 
-
-def limit_coordinates(netcdf_file_path):
-    """Limit coordinates of a global netCDF file to Australia."""
+def limit_coordinates(netcdf_file_path: str):
+    """! Limit data of a global netCDF file to Australian coordinates."""
     data = xr.open_dataset(netcdf_file_path)
     # aus_data = data.sel(lat=slice(-9.005, -43.735), lon=slice(112.905, 153.995))  # coordinates matching SMIPS
     aus_data = data.sel(lat=slice(-9.140625, -45.0), lon=slice(110.03906, 157.85156)) # coordinates from past bounded access-g data
@@ -20,17 +19,17 @@ def limit_coordinates(netcdf_file_path):
 
 
 def transfer_files(start_date=None, end_date=datetime.date.today()):
-    """
+    """!
     Transfer daily ACCESS-G files from NCI to network location.
-        Need an NCI login and private ssh key with NCI - or, password input.
-        If password input, have to run this from the terminal and not with an IDE's "run".
-
-    Parameters:
-        start_date -- starting date for files you'll download
-        end_date -- end date for files you'll download (not inclusive)
+    - Need an NCI login and private ssh key with NCI - or, password input.
+    - If password input, have to run this from the terminal and not with an IDE's "run".
 
     Run without arguments to update - only transfer files newer than the newest file.
+
+    @param start_date: starting date for files to download
+    @param end_date: end date for files to download (not inclusive)
     """
+
     my_hostname = 'raijin.nci.org.au'
     my_username = 'aa1582'
     #my_password = getpass()
