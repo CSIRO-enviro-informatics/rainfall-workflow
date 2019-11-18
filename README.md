@@ -2,6 +2,8 @@
 
 Workflow which uses observed and forecast precipitation data, processes and transforms it, with the eventual goal of creating a soil moisture forecast API. 
 
+Use Workflow_Guide.ipynb to familiarise yourself with the main workflow steps. 
+
 ## Use notes
 
 - Need NCI login and membership in lb4 project (to get new ACCESS-G data). 
