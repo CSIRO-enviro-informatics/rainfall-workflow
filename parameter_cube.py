@@ -190,7 +190,8 @@ def add_to_netcdf_cube_from_files(files, cubename):
 
     for file2process in files:
         file = file2process
-        _, lat, lon = file.rstrip('.nc').split('_')
+        file_only = file.split('/')[-1] # new network path has underscores in directories
+        _, lat, lon = file_only.rstrip('.nc').split('_')
         lat, lon = round(float(lat), 2), round(float(lon), 2)  # rounding lat and lon values to sacrifice accuracy for consistency in the dictionary lookup
 
         dataset = xr.open_dataset(file, decode_times=False)
