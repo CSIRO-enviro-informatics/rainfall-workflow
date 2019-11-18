@@ -35,7 +35,6 @@ import settings
 import numpy as np
 from netCDF4 import Dataset
 
-placeholder_date = datetime.date(2019, 11, 1)  # date for forecast
 
 # nsw bounding coords
 top_lat = -27.9675 # lat upper bound
@@ -137,14 +136,13 @@ def create_shuffled_forecasts():
                 if left_lon <= lons[lon] <= right_lon:
                     transform.shuffle(lat, lon, date_index_sample)
 
-    forecast_cube.aggregate_netcdf(placeholder_date, settings.FORECAST_SHUFFLE_PATH)
+    forecast_cube.aggregate_netcdf(settings.placeholder_date, settings.FORECAST_SHUFFLE_PATH)
 
 
 if __name__ == '__main__':
     daily_jobs()
     check_for_bad_smips()
     create_parameter_files()
-    create_forecast_files(placeholder_date)
+    create_forecast_files(settings.placeholder_date)
     create_shuffled_forecasts()
-    forecast_cube.aggregate_netcdf(placeholder_date, settings.FORECAST_SHUFFLE_PATH)
     print('Done')

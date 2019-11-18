@@ -216,18 +216,15 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
             date = datetime.datetime(int(str_date[:4]), int(str_date[4:6]), int(str_date[6:8]), 12)
             datedelta = (date - datetime.datetime(startbase.year, startbase.month, startbase.day)).days
             dateindex = datedelta - startdelta
-            if dateindex >= 1203 or not(1 <= dateindex <= 1202):
-                print(dateindex, date, file)
-                print(datedelta, startbase, startdelta)
 
-            print('Exporting to netCDF for date: ', date.isoformat())
+            #print('Exporting to netCDF for date: ', date.isoformat())
 
             var = outcube.variables[var_name]
             var[dateindex, :] = datain[:]
             tme = outcube.variables['time']
             tme[dateindex] = datedelta
             #print(dataset.time.values[dateindex])
-            print(dateindex+1, outcube.variables['time'][dateindex])
+            #print(dateindex+1, outcube.variables['time'][dateindex])
             #print(var[dateindex], datain.data[:])
 
     outcube.close()

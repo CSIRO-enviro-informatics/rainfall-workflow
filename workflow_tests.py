@@ -16,7 +16,7 @@ import workflow
 #test_coords = [-34.6875, 143.08594]
 #test_coords = [-36.5625, 147.3047] # infinity - fixed
 test_coords = [-35.85938, 148.3594] # anomaly over canberra
-test_date = workflow.placeholder_date
+test_date = settings.placeholder_date
 
 # CAUTION: test functions will delete the files they are overwriting
 

@@ -39,6 +39,8 @@ yesterday = datetime.date.today() - datetime.timedelta(days=1)
 
 ACCESS_G_NUM_LEAD_DAYS = 10
 
+placeholder_date = datetime.date(2019, 11, 1)  # date for forecast
+
 
 # combine with ACCESS_G_PATH for a specific file path
 def access_g_filename(str_date):

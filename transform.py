@@ -16,7 +16,6 @@ from dateutil.relativedelta import relativedelta
 import bjpmodel
 import forecast_cube
 import source_cube
-from workflow import placeholder_date
 from shuffle import shuffle_random_ties
 
 
@@ -29,7 +28,7 @@ def shuffle(lat: int, lon: int, date_index_sample: list):
     @param date_index_sample: list of date indices
     """
     observed = xr.open_dataset(settings.SMIPS_AGG, decode_times=False)
-    fc = xr.open_dataset(settings.forecast_agg(placeholder_date))
+    fc = xr.open_dataset(settings.forecast_agg(settings.placeholder_date))
     lats, lons = source_cube.get_lat_lon_values()
 
     obs_pre_shuffle = np.zeros((9, 1000))
@@ -49,7 +48,7 @@ def shuffle(lat: int, lon: int, date_index_sample: list):
 
         shuffled_fc = shuffle_random_ties(fc_to_shuffle, obs_to_shuffle)
         # save shuffled_fc to netcdf
-        forecast_cube.add_to_netcdf_cube(settings.shuffled_forecast_filename(placeholder_date, lats[lat], lons[lon]),
+        forecast_cube.add_to_netcdf_cube(settings.shuffled_forecast_filename(settings.placeholder_date, lats[lat], lons[lon]),
                                          lead, shuffled_fc)
 
 
@@ -150,7 +149,7 @@ def extract_fit_data(lat, lon, start_date, end_date):
         base_i = 24*day + int(utc_offset)  # day start
         forecast_i = base_i + 24  # day end
 
-        print(day, base_i, forecast_i)
+        #print(day, base_i, forecast_i)
 
         ### WARNING: TO DO: DOUBLE-CHECK ALIGNMENT OF ACCESS-G AND SMIPS
         fc = forecast_values[:, forecast_i] - forecast_values[:, base_i]
@@ -185,7 +184,7 @@ def extract_data(lat, lon, cdate, lead_time):
     base_i = 24*lead_time + int(utc_offset)  # day start
     forecast_i = base_i + 24  # day end
 
-    print(lead_time, base_i, forecast_i)
+    #print(lead_time, base_i, forecast_i)
     fc = forecast_values[forecast_i] - forecast_values[base_i]
 
     return fc

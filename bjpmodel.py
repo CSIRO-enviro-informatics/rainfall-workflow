@@ -83,7 +83,7 @@ class BjpModel:
             fit_data_for_trans = fit_data_for_trans[flags != self.MISSING_DATA_CODE]
 
             if group == 10 or group == 50:
-                print(np.nanmax(fit_data_for_trans))
+                #print(np.nanmax(fit_data_for_trans))
                 trformer = pytrans.PyLogSinh(scale=5.0/np.max(fit_data_for_trans))
                 trformer.optim_params(fit_data_for_trans, censor, do_rescale=True, is_map=True)
 
@@ -149,7 +149,7 @@ class BjpModel:
 
             rs_pred = trformer.rescale_one(predictor_values[i])
             tr_pred = trformer.transform_one(rs_pred)
-            print(predictor_values[i], tr_pred, rs_pred, trformer.get_params())
+            #print(predictor_values[i], tr_pred, rs_pred, trformer.get_params())
             bjp_data_new['tr_data'][i] = tr_pred
 
 
@@ -218,7 +218,7 @@ class BjpModel:
 
         self.bjp_wrapper = pybjp.PyBJP(self.num_vars, self.burn, self.chainlength, self.seed)
         bjp_fc_data = self.prepare_fc_data(predictor_values, transformers)
-        print(bjp_fc_data['tr_data'].dtype, bjp_fc_data['flags'].dtype, bjp_fc_data['tr_censor'].dtype, mu.dtype, cov.dtype, (cov.shape[0] / 2))
+        #print(bjp_fc_data['tr_data'].dtype, bjp_fc_data['flags'].dtype, bjp_fc_data['tr_censor'].dtype, mu.dtype, cov.dtype, (cov.shape[0] / 2))
         forecasts = self.bjp_wrapper.forecast2(bjp_fc_data['tr_data'], bjp_fc_data['flags'], bjp_fc_data['tr_censor'], mu.astype(np.float64), cov.astype(np.float64), int(cov.shape[0] / 2))
 
         for i in range(self.num_vars):
