@@ -8,5 +8,5 @@ __pycache__/
 new_bjp/
 transformation/
 temp/
-*.ipynb
+#*.ipynb
 *.so
