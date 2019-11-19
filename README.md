@@ -11,11 +11,14 @@ Use Workflow_Guide.ipynb to familiarise yourself with the main workflow steps.
 - After cloning the repository, set up the conda environment.  
   `conda env create -f environment.yml`
 
-- External Cython packages are used: pytrans, pybjp. pytrans: https://bitbucket.csiro.au/projects/SF/repos/transformation/browse. pybjp: ask Andrew. Edit setup.py as needed to reflect locations of C++ libraries and build packages with: <br>
+- External Cython packages are used: pytrans, pybjp. <br>
+  pytrans: https://bitbucket.csiro.au/projects/SF/repos/transformation/browse.  <br>
+  pybjp: contact Andrew. <br> 
+  After downloading these, edit setup.py as needed (eg. to reflect locations of C++ libraries), and build packages with: <br>
   `python setup.py build_ext --inplace` <br>
   Move the created .so or .pyd files to working directory to install. 
 
-- Generate HTML documentation by installing doxygen and running: <br>
+- Generate HTML documentation by installing [Doxygen](http://www.doxygen.nl/manual/install.html) and running: <br>
   `doxygen Doxyfile` 
 
 ## Project file overview
