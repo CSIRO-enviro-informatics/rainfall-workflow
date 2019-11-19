@@ -1,5 +1,5 @@
 """!
-Functions for managing SMIPS and ACCESS-G data and netCDF4 files.
+Functions for managing SMIPS and ACCESS-G data and netCDF4 files. See parameter_cube.py for similar function documentation.
 """
 
 import settings
@@ -23,6 +23,10 @@ yesterday = datetime.date.today() - datetime.timedelta(days=1)
 
 
 def sample_date_indices():
+    """!
+    Samples 1000 SMIPS dates.
+    @return list of date indices
+    """
     observed = xr.open_dataset(settings.SMIPS_AGG, decode_times=False)
     max_date_index = len(observed.time.values) - 8 # to ensure we don't get the last value and don't have "lead time" values for it
     date_index_sample = random.sample(range(max_date_index), 1000)
@@ -30,6 +34,7 @@ def sample_date_indices():
 
 
 def get_datedeltas(cubepathname=settings.ACCESS_G_AGG, end_date=yesterday):
+    """! Gets timedelta representations of the dates of a cube's time dimension."""
     refcube = Dataset(cubepathname, mode='a', format='NETCDF4')
     time = refcube.get_variables_by_attributes(long_name='time')
     if len(time) == 0:
@@ -65,10 +70,9 @@ def create_cube(cubepathname, startdate=None, enddate=None):
     """!
     Creates a netCDF cube for SMIPS or ACCESS-G aggregated data
     Will delete a cube corresponding to cubepathname if it exists.
-    Parameters:
-        cubepathname -- indicates if 'SMIPS' or 'ACCESS' of 'params' - name must contain either of these strings
-        startdate -- start date of data TODO: make optional
-        enddate -- end date of data TODO: make optional
+    @param cubepathname -- indicates if 'SMIPS' or 'ACCESS' of 'params' - name must contain either of these strings
+    @param startdate -- start date of data
+    @param enddate -- end date of data
     """
     if os.path.exists(cubepathname):
         os.remove(cubepathname)
@@ -143,12 +147,11 @@ def create_cube(cubepathname, startdate=None, enddate=None):
 
 
 def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
-    """
+    """!
     Adds to a netCDF cube SMIPS or ACCESS-G data or params from files - aggregates.
-    Parameters:
-        cubepathname -- indicates if 'SMIPS' or 'ACCESS' or 'params' - name must contain either of these strings
-        enddate -- end date of data todo: make optional
-        files -- source of data to add as a list from glob.glob
+    @param cubepathname -- indicates if 'SMIPS' or 'ACCESS' or 'params' - name must contain either of these strings
+    @param enddate -- end date of data todo: make optional
+    @param files -- source of data to add as a list from glob.glob
     """
     if 'SMIPS' in cubename or 'ACCESS' in cubename:
         if not end_date:

@@ -14,11 +14,10 @@ import transform
 
 
 def read_parameters(lat, lon):
-    """
+    """!
     Read the mu, cov, and transform parameter data from netcdf and reconstruct arrays with the same shape and order as returned from BJP
     sample.
-    :param: lat, lon - coordinates for the grid whose params to read
-    :return:  mu[9][1000][2], cov[9][1000][3], tp[9][2][3]
+    @return mu[9][1000][2], cov[9][1000][3], tp[9][2][3]
     """
     file = settings.PARAMS_AGG
     p = xr.open_dataset(file)
@@ -41,7 +40,7 @@ def read_parameters(lat, lon):
 
 
 def generate_forecast_parameters(lat, lon):
-    """
+    """!
     For each grid point: Create post-processed forecast
     1. Extract symmetric grid point(s) from observed and forecast and transform
     2. Model fit/forecast
@@ -79,7 +78,7 @@ def generate_forecast_parameters(lat, lon):
 
 
 def create_cube(cubepathname, lat=None, lon=None):
-    # create cube for grid parameters
+    """! Create cube for grid parameters"""
     # also check paramaters if you're creating a single-grid cube or a whole-grid cube for aggregation
     # Lat and lon are optional bc not needed for aggregated file
     if os.path.exists(cubepathname):
@@ -154,13 +153,13 @@ def create_cube(cubepathname, lat=None, lon=None):
 
 
 def add_to_netcdf_cube(cubename, lead_time, normal_data, transformed_data):
+    """!
+        Adds params data to a single grid cube.
+        @param cubename: name of the cube - will contain lat and lon info
+        @param normal_data: param data to add; [1000, 5]
+        @param lead_time: lead time in days; in range(9)
+        @param transformed_data: param data to add; [4]
     """
-        if params: Adds params data to a single grid cube.
-        :param cubename: name of the cube - will contain lat and lon info
-        :param normal_data: param data to add; [1000, 5]
-        :param lead_time: lead time in days; in range(9)
-        :param transformed_data: param data to add; [4]
-        """
 
     cubepathname = os.path.join(settings.PARAMS_GRIDS_PATH, cubename)
     _, lat, lon = cubename.rstrip('.nc').split('_')
@@ -178,7 +177,7 @@ def add_to_netcdf_cube(cubename, lead_time, normal_data, transformed_data):
 
 
 def add_to_netcdf_cube_from_files(files, cubename):
-    # add parameter data to aggregate netcdf cube
+    """! Add parameter data to aggregate netcdf cube."""
     #cubepathname = os.path.join(settings.PARAMS_PATH, cubename)
     cubepathname = cubename
     if not os.path.exists(cubepathname):
@@ -210,7 +209,7 @@ def add_to_netcdf_cube_from_files(files, cubename):
 
 
 def aggregate_netcdf():
-    # aggregate parameter files
+    """"! Aggregate parameter files"""
     path = settings.PARAMS_GRIDS_PATH
     files = [file for file in glob.glob(path + '*.nc')]
     add_to_netcdf_cube_from_files(files, settings.PARAMS_AGG)

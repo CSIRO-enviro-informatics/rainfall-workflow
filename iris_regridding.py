@@ -1,5 +1,5 @@
-"""@file iris_regridding
-
+"""!
+Regrid SMIPS data using iris library to match ACCESS-G shape.
 
 """
 import iris
@@ -30,11 +30,10 @@ def extract_timestep(nc, date):
 
 
 def save_timestep(cube, str_date):
-    """
+    """!
     Save the regridded netCDF file containing blended_precipitation data for a date.
-    Parameters:
-        cube -- netCDF container open as an xarray Dataset
-        str_date -- string representation of a date in the form YYYYMMDD
+    @param cube: netCDF container open as an xarray Dataset
+    @param str_date: string representation of a date in the form YYYYMMDD
     """
     new_file = settings.SMIPS_DEST_PATH + '{}/SMIPS_blnd_prcp_regrid_{}.nc'.format(str_date[:4], str_date)
     iris.save(cube, new_file)
@@ -42,9 +41,9 @@ def save_timestep(cube, str_date):
 
 
 def init_regridder():
-    """
+    """!
     Creating the regridder - most resource intensive part, so do only once.
-    Initalised with random SMIPS and ACCESS-G files.
+    Initalised with random SMIPS and ACCESS-G files for reference.
     """
     target_file = settings.ACCESS_G_PATH + settings.access_g_filename('20190101') # random access-g file
     cube = extract_timestep(smips_nc, datetime.date(2019, 1, 1))  # random smips file
@@ -64,7 +63,7 @@ def init_regridder():
 
 
 def regrid(cube, regridder):
-    """ Regrid a SMIPS cube"""
+    """! Regrid a SMIPS cube"""
     cube.coord('longitude').guess_bounds()
     cube.coord('latitude').guess_bounds()
     cube.coord('longitude').standard_name = 'longitude'  # necessary to guess the coordinate axis
@@ -73,12 +72,11 @@ def regrid(cube, regridder):
 
 
 def run_regridding(update_only=True, start_date=False, end_date=False):
-    """
+    """!
     Re-sample SMIPS geographic grids to match ACCESS-G's.
-    Parameters:
-        update_only -- if true, only run for new or start_date -> end_date inclusive files. else, run for all files
-        start_date -- file date to start regridding
-        end_date -- file date to end regridding (non inclusive). on any day, can only be as recent as yesterday
+    @param update_only: if true, only run for new or start_date -> end_date inclusive files. else, run for all files
+    @param start_date: file date to start regridding
+    @param end_date: file date to end regridding (non inclusive). on any day, can only be as recent as yesterday
     """
 
     regridder = init_regridder()
