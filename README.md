@@ -6,12 +6,17 @@ Use Workflow_Guide.ipynb to familiarise yourself with the main workflow steps.
 
 ## Use notes
 
-- Need NCI login and membership in lb4 project (to get new ACCESS-G data). 
+- Need NCI login and membership in lb4 project (to get new ACCESS-G data). Edit transfer_files.py with these credentials. 
 - Best on Unix systems - (if Windows, need to add equivalent network locations in settings.py and there have been problems with packages working). 
-- Set up environment with environment.yml. 
-- External Cython packages are used: pytrans, pybjp. Need to build and install these. 
-- Generate HTML documentation by installing doxygen and running "doxygen Doxyfile". 
+- After cloning the repository, set up the conda environment.  
+  `conda env create -f environment.yml`
 
+- External Cython packages are used: pytrans, pybjp. pytrans: https://bitbucket.csiro.au/projects/SF/repos/transformation/browse. pybjp: ask Andrew. Edit setup.py as needed to reflect locations of C++ libraries and build packages with: <br>
+  `python setup.py build_ext --inplace` <br>
+  Move the created .so or .pyd files to working directory to install. 
+
+- Generate HTML documentation by installing doxygen and running: <br>
+  `doxygen Doxyfile` 
 
 ## Project file overview
 
@@ -22,4 +27,3 @@ forecast_cube.py, parameter_cube.py, source_cube.py - Files managing netCDF4 fil
 data_transfer.py, iris_regridding.py - Get ACCESS-G and SMIPS data (respectively), pre-process it, and save it to a network location. <br>
 dates.py - Date functions package. 
 settings.py - Stores file names and variables.
-
