@@ -10,6 +10,7 @@ if 'Linux' in platform.platform():
     SMIPS_DEST_PATH = '/OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/'  # smips write path
     SMIPS_AGG = '/OSM/CBR/LW_SOILDATAREPO/work/SMIPSRegrid/SMIPS.nc'  # path to aggregated smips file
     ACCESS_G_AGG = '/OSM/CBR/LW_SATSOILMOIST/source/BOM-ACCESS-G/ACCESS_G_12z/ACCESS-G.nc'  # path to aggregated access-g file
+    FC_PATH = '/OSM/CBR/LW_SATSOILMOIST/processed/RainfallForecasts/'
 
 else:  # Windows
     ACCESS_G_PATH = '//osm-12-cdc.it.csiro.au/OSM_CBR_LW_SATSOILMOIST_source/BOM-ACCESS-G/ACCESS_G_12z/'
@@ -18,14 +19,13 @@ else:  # Windows
 
 TEST_PATH = 'temp/'  # local directory for temporary file saving - needs cleaning out
 
-PARAMS_PATH = TEST_PATH + 'params/'
+PARAMS_PATH = FC_PATH + 'params/'
 PARAMS_GRIDS_PATH = PARAMS_PATH + 'grids/'
 PARAMS_AGG = PARAMS_PATH + 'PARAMS_aggregated.nc'
 
-FORECAST_PATH = TEST_PATH + 'forecast/'
+FORECAST_PATH = FC_PATH + 'forecast/'
 FORECAST_GRID_PATH = FORECAST_PATH + 'grids/'
 FORECAST_SHUFFLE_PATH = FORECAST_PATH + 'shuffled/'
-#FORECAST_AGG = FORECAST_PATH + 'FORECAST_aggregated.nc'
 
 SMIPS_CONTAINER = 'SMIPSv0.5.nc'  # name of container in SMIPS_PATH
 
