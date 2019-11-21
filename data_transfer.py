@@ -33,7 +33,7 @@ def transfer_files(start_date=None, end_date=datetime.date.today()):
     my_hostname = 'raijin.nci.org.au'
     my_username = 'aa1582'
     #my_password = getpass()
-    private_key = '~/.ssh/id_rsa'
+    private_key = '~/.ssh/id_rsa_aa1582.key'
 
     if not start_date:
         start_date = get_start_date(settings.ACCESS_G_PATH)
