@@ -8,6 +8,11 @@ Use Workflow_Guide.ipynb to familiarise yourself with the main workflow steps.
 
 - Need NCI login and membership in lb4 project (to get new ACCESS-G data). Edit transfer_files.py with these credentials. 
 - Best on Unix systems - (if Windows, need to add equivalent network locations in settings.py and there have been problems with packages working). 
+- On Ubuntu, install these requirements:
+  - libboost-dev
+  - libeigen3-dev
+  - Miniconda3
+
 - After cloning the repository, set up the conda environment.  
   `conda env create -f environment.yml`
 
