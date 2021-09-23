@@ -1,0 +1,12 @@
+#assuming OS already has installed wheel, numpy and scipy at system level
+# install wheel if system doesn't already have it
+netcdf4==1.4.3.2;python_version<"3.8"  # in ubuntu: requires libnetcdf-dev (>4.3.2)
+netcdf4==1.5.3;python_version>="3.8"  # in ubuntu: requires libnetcdf15>=4.4.0, libhdf5-103
+# iris requires cartopy, cartopy requires PROJ.4 v 4.9.0 to be isntalled
+cartopy>=0.12.0  # requires libgeos-dev (and libgeos-3.x.0), and libproj-dev
+dask==2.25.0
+xarray==0.15.1
+requests==2.23.0
+timezonefinder==4.4.0
+lxml>=4.5,<4.6
+
