@@ -1,14 +1,13 @@
-"""! Andrew's file"""
+"""\ Andrew's file"""
 
-import os, sys
+import os
+import sys
 from subprocess import call
 from datetime import date, datetime
 
 import pandas as pd
 import numpy as np
 from dateutil.relativedelta import relativedelta
-
-import shuffle
 
 first_year = 1970
 last_year = 2015

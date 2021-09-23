@@ -1,13 +1,12 @@
-"""! Temporarily used functions to deal with SMIPS error data."""
+"""\ Temporarily used functions to deal with SMIPS error data."""
 
 import xarray as xr
-import settings
 import datetime
-from source_cube import get_lat_lon_indices
-import iris_regridding
 import iris
 from netCDF4 import Dataset
-import source_cube
+
+from . import settings, source_cube, iris_regridding
+from .source_cube import get_lat_lon_indices
 
 bad_date = datetime.date(2018, 5, 19)
 
@@ -17,14 +16,14 @@ def create_new_file():
     smips_file = settings.SMIPS_PATH + settings.SMIPS_CONTAINER  # original
     smips_nc = xr.open_dataset(smips_file)
 
-    timestep = iris_regridding.extract_timestep(smips_nc, bad_date)  # this is the daily smips cube
+    timestep = iris_regridding.get_smips_nc_blended_precipetation_dateslice(smips_nc, bad_date)  # this is the daily smips cube
     regridded = iris_regridding.regrid(timestep, regridder)  # regridding to match access-g shape
     iris_regridding.save_timestep(regridded, settings.date_type_check(bad_date))  # save to disk
 
 
 # change bad data in a smips file 2018-05-19
 def edit_netcdf():
-    fname = settings.SMIPS_DEST_PATH + settings.smips_filename(bad_date)
+    fname = settings.SMIPS_DEST_PATH + settings.smips_regrid_dest_filename(bad_date)
 
     startlat = -34.69
     endlat = -37.73 #.5

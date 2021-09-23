@@ -1,0 +1,9 @@
+FROM alpine:3.12
+RUN echo "https://dl-3.alpinelinux.org/alpine/v3.12/main" >> /etc/apk/repositories
+RUN echo "https://dl-3.alpinelinux.org/alpine/v3.12/community" >> /etc/apk/repositories
+RUN apk add --no-cache python3 py3-pip gcompat libgcc
+RUN echo 'manylinux2014_compatible = True' > /usr/lib/python3.8/_manylinux.py &&\
+    pip3 install "orjson>=2.6.5" &&\
+    rm /usr/lib/python3.8/_manylinux.py
+RUN python3 --version
+RUN python3 -c "import orjson; print(orjson.dumps(list(range(10))))"
