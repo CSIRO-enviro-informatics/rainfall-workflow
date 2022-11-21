@@ -3,10 +3,12 @@ import subprocess
 import sys
 from os import path, getuid
 from pathlib import Path
+import datetime
+import ciso8601
 
 from . import settings
 from .util import grouper, distributor
-FALSIES = ('f', 'F', 'FALSE', 'false', '0', 'off', 0, False)
+FALSIES = ('f', 'F', 'FALSE', 'false', '0', 'off', 'no', 0, False)
 
 MY_UID = getuid()
 
@@ -40,7 +42,7 @@ for e in MPI_env_options:
     break
 else:
     print("MPI Env vars not found. Not enabling MPI mode.", flush=True)
-
+#USE_MPI = False
 if USE_MPI is not False:
     try:
         print("({}) Attempting to load mpi4py...".format(USE_MPI), flush=True)
@@ -172,24 +174,42 @@ def task_params():
         for lf in local_files:
             os.unlink(str(lf))
 
+
 def task_get_latest_accessg():
     from . import data_transfer, source_cube
-    accessg_dates = data_transfer.get_latest_accessg_files()
+    accessg_date = os.getenv("ACCESSG_DATE", None)
+    if accessg_date is not None:
+        accessg_date = ciso8601.parse_datetime(accessg_date)
+        if accessg_date.tzinfo is None:
+            accessg_date = accessg_date.replace(tzinfo=datetime.timezone.utc)
+        accessg_dates = data_transfer.get_latest_accessg_files(start_date=accessg_date, end_date=accessg_date)
+    else:
+        accessg_dates = data_transfer.get_latest_accessg_files()
     source_cube.aggregate_netcdf(accessg=True, update_only=True)
     #source_cube.aggregate_netcdf(accessg=True, just_dates=accessg_dates)
 
 def task_get_latest_smips():
     import datetime
     from . import iris_regridding, source_cube
-    #smips_dates = iris_regridding.run_smips_regridding()
+    smips_dates = iris_regridding.run_smips_regridding()
     #smips_dates = iris_regridding.run_smips_regridding(update_only=True, start_date=datetime.date(2020,8,31), end_date=datetime.date(2020,8,31))
-    smips_dates = iris_regridding.run_smips_regridding(update_only=True, end_date=datetime.date(2021, 2, 21))
+    #smips_dates = iris_regridding.run_smips_regridding(update_only=True, end_date=datetime.date(2021, 2, 21))
     #source_cube.aggregate_netcdf(smips=True, just_dates=smips_dates)
     source_cube.aggregate_netcdf(smips=True, update_only=False)
 
 def task_split_access_g():
     from . import main
     main.split_accum_access_g()
+
+def task_fill_missing_access_g():
+    import datetime
+    from . import source_cube
+    return source_cube.try_fill_cube_missing_dates(accessg=True, from_date=datetime.date(2021,3,1))
+
+def task_fill_missing_smips():
+    import datetime
+    from . import source_cube
+    return source_cube.try_fill_cube_missing_dates(smips=True, from_date=datetime.date(2021,3,1))
 
 def ep():
     task = os.getenv("WORKFLOW_TASK", "test").lower()

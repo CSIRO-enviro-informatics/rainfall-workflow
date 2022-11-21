@@ -112,7 +112,7 @@ def sample_date_indices():
     """
     agg_file = settings.SMIPS_REGRID_AGG()
     observed = xr.open_dataset(str(agg_file), decode_times=False)
-    max_date_index = len(observed.time.values) - 8 # to ensure we don't get the last value and don't have "lead time" values for it
+    max_date_index = len(observed.time.values) - 8  # to ensure we don't get the last value and don't have "lead time" values for it
     date_index_sample = random.sample(range(max_date_index), 1000)
     return date_index_sample
 
@@ -303,61 +303,62 @@ def add_to_netcdf_cube_from_files(files, cubename, refresh=True, end_date=None):
 
     if 'ACCESS' in cubename:
         lead_times = [x * 3600 for x in range(1, 241)]
-
-    for file2process in files:
-        file = file2process
-        try:
-            dataset = xr.open_dataset(file, decode_times=False)
-        except FileNotFoundError as e:
-            print(e, flush=True)
-            if files[-1] == file:
-                print("Latest file not found. Maybe it wasn't downloaded properly. Skipping.", flush=True)
-                continue
-            else:
-                raise RuntimeError("Cannot put file in the aggregate file, because it was not found:\n{}".format(file))
-
-        if 'SMIPS' in cubename:
-            if var_name not in dataset.variables:
-                lowers = {str(v).lower().replace(" ", "_"): v for v in dataset.variables}
-                if var_name in lowers:
-                    use_var_name = lowers[var_name]
+    try:
+        for file2process in files:
+            file = file2process
+            try:
+                dataset = xr.open_dataset(file, decode_times=False)
+            except FileNotFoundError as e:
+                print(e, flush=True)
+                if files[-1] == file:
+                    print("Latest file not found. Maybe it wasn't downloaded properly. Skipping.", flush=True)
+                    continue
                 else:
-                    raise RuntimeError("Source file {} does not have a variable named {}".format(file, var_name))
+                    raise RuntimeError(
+                        "Cannot put file in the aggregate file, because it was not found:\n{}".format(file))
+
+            if 'SMIPS' in cubename:
+                if var_name not in dataset.variables:
+                    lowers = {str(v).lower().replace(" ", "_"): v for v in dataset.variables}
+                    if var_name in lowers:
+                        use_var_name = lowers[var_name]
+                    else:
+                        raise RuntimeError("Source file {} does not have a variable named {}".format(file, var_name))
+                else:
+                    use_var_name = var_name
+                data = dataset[use_var_name][:307, :273].values
+                datain = np.where(data==9.96921e+36, -9999.0, data)
+
+            elif 'ACCESS' in cubename:
+                # if '20181008' in file:  # file with incomplete lead time dimension
+                #     padded = np.full((240, 307, 273), 1.0E36)
+                #     padded[:120, :154, :136] = dataset[var_name][:120, :154, :136].values
+                #     datain = np.where(padded == 1.0E36, -9999.0, padded)
+                # else:
+                data = dataset[var_name][:240, :307, :273].values
+                datain = np.where(data==1.0E36, -9999.0, data)
+                has_nan = np.any(np.isnan(datain))
+                if has_nan:
+                    print(has_nan)
+            if 'ACCESS' in cubename:
+                str_date = file.rsplit('_', 1)[1].replace('12.nc', "")
             else:
-                use_var_name = var_name
-            data = dataset[use_var_name][:307, :273].values
-            datain = np.where(data==9.96921e+36, -9999.0, data)
+                str_date = file.rsplit('_', 1)[1].replace('.nc', "")
+            date = datetime.datetime(int(str_date[:4]), int(str_date[4:6]), int(str_date[6:8]), 12)
+            thisdatedelta = (date - datetime.datetime(startbase.year, startbase.month, startbase.day)).days
+            dateindex = thisdatedelta - startdelta
 
-        elif 'ACCESS' in cubename:
-            # if '20181008' in file:  # file with incomplete lead time dimension
-            #     padded = np.full((240, 307, 273), 1.0E36)
-            #     padded[:120, :154, :136] = dataset[var_name][:120, :154, :136].values
-            #     datain = np.where(padded == 1.0E36, -9999.0, padded)
-            # else:
-            data = dataset[var_name][:240, :307, :273].values
-            datain = np.where(data==1.0E36, -9999.0, data)
-            has_nan = np.any(np.isnan(datain))
-            if has_nan:
-                print(has_nan)
-        if 'ACCESS' in cubename:
-            str_date = file.rsplit('_', 1)[1].replace('12.nc', "")
-        else:
-            str_date = file.rsplit('_', 1)[1].replace('.nc', "")
-        date = datetime.datetime(int(str_date[:4]), int(str_date[4:6]), int(str_date[6:8]), 12)
-        thisdatedelta = (date - datetime.datetime(startbase.year, startbase.month, startbase.day)).days
-        dateindex = thisdatedelta - startdelta
+            #print('Exporting to netCDF for date: ', date.isoformat())
 
-        #print('Exporting to netCDF for date: ', date.isoformat())
-
-        var = outcube.variables[var_name]
-        var[dateindex, :] = datain[:]
-        tme = outcube.variables['time']
-        tme[dateindex] = thisdatedelta
-        #print(dataset.time.values[dateindex])
-        #print(dateindex+1, outcube.variables['time'][dateindex])
-        #print(var[dateindex], datain.data[:])
-
-    outcube.close()
+            var = outcube.variables[var_name]
+            var[dateindex, :] = datain[:]
+            tme = outcube.variables['time']
+            tme[dateindex] = thisdatedelta
+            #print(dataset.time.values[dateindex])
+            #print(dateindex+1, outcube.variables['time'][dateindex])
+            #print(var[dateindex], datain.data[:])
+    finally:
+        outcube.close()
 
     return True, True
 
@@ -379,7 +380,7 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
             files_fn = settings.smips_regrid_dest_filename
         elif settings.SMIPS_PRECIP_SOURCE == "blendedPrecipOutputs":
             files_fn = settings.smips_regrid_dest_filename
-        elif settings.SMIPS_PRECIP_SOURCE == "MLPrecip":
+        elif settings.SMIPS_PRECIP_SOURCE.startswith("MLPrecip"):
             files_fn = settings.ml_precip_regrid_dest_filename
         else:
             raise RuntimeError("Bad SMIPS_PRECIP_SOURCE: {}".format(settings.SMIPS_PRECIP_SOURCE))
@@ -452,6 +453,72 @@ def aggregate_netcdf(update_only=True, start_date=None, end_date=None, smips=Fal
         print("Updating SMIPS source cube with start_date={} and end_date={} and files:\n{}".format(start_date, end_date, files), flush=True)
     add_to_netcdf_cube_from_files(end_date=end_date, cubename=str(aggregate_file), files=files)
 
+def try_fill_cube_missing_dates(smips=False, accessg=False, check_nans=True, from_date=None):
+    nowz = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+    todayz = nowz.date()
+    yesterdayz = todayz - datetime.timedelta(days=1)
+    if smips:
+        raise RuntimeError("I don't know how ot fill missing dates in smips cube for now!")
+        aggregate_file = settings.SMIPS_REGRID_AGG()
+        end_date = yesterdayz
+        var = "blended_rainfall"
+    elif accessg:
+        aggregate_file = settings.ACCESS_G_AGG
+        end_date = todayz
+        var = "accum_prcp"
+    else:
+        return False
+    nc = xr.open_dataset(str(aggregate_file), decode_times=False)
+    offset = datetime.date(1900, 1, 1)
+    times = nc.time.values
+    if accessg:
+        times = [offset + datetime.timedelta(days=int(d)) for d in times]
+    not_in_cube = []
+    ref = times[0]
+    if from_date is None:
+        from_date = times[0]
+        start_checking = True
+    else:
+        start_checking = False
+    for t in times:
+        if not start_checking:
+            if t >= from_date:
+                from_date = t
+                start_checking = True
+            else:
+                ref = ref + datetime.timedelta(days=1)
+                continue
+        if t != ref:
+            delta = (t - ref)
+            print("Missing delta: {}", delta)
+            not_in_cube.append(ref)
+            ref = t
+        else:
+            print("Found {}".format(ref))
+        ref = ref + datetime.timedelta(days=1)
+    if start_checking is False:
+        raise RuntimeError("Start date {} not found in the cube.", from_date)
+    if from_date != times[0]:
+        start_checking = False
+    if check_nans:
+        for t in times:
+            if not start_checking:
+                if t >= from_date:
+                    start_checking = True
+                else:
+                    continue
+            print("Checking for missing data in {}".format(t))
+            if accessg:
+                tsel = (t - offset).days
+            else:
+                tsel = t
+            da = getattr(nc, var)
+            slice = da.sel(time=tsel)
+            if np.all(np.isnan(slice)):
+                not_in_cube.append(t)
+
+    print(not_in_cube)
 if __name__ == '__main__':
+    try_fill_cube_missing_dates(accessg=True)
     aggregate_netcdf(smips=True)
     aggregate_netcdf(accessg=True) #start_date=datetime.date(2017, 5, 17), end_date=datetime.date(2017, 5, 18))
