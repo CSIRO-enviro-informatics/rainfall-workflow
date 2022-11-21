@@ -14,6 +14,7 @@ from .dates import get_dates, check_latest_local_files
 from lxml import etree as et
 from urllib.request import urlopen, Request
 from os import path, getenv
+from multiprocessing.pool import ThreadPool
 import pathlib
 
 def limit_coordinates(netcdf_file_path: str):
@@ -157,6 +158,45 @@ def read_xml_catalog(url):
 
 compressed = {'dtype': 'float64', 'complevel': 1,'zlib': True}
 
+def _download_part(part_i, dl_url, temp_download_path, file_name_template):
+    if not temp_download_path.exists():
+        print("Attempting to download: {}".format(dl_url))
+        temp_download_path.parent.mkdir(parents=True, exist_ok=True)
+        finished_dl, http_status = url_retrieve_badssl(dl_url, temp_download_path)
+    else:
+        print("Using existing downloaded: {}".format(dl_url))
+        finished_dl = temp_download_path
+    whole_ds, australia_ds = limit_coordinates(finished_dl)
+    prcp_file = restrict_vars(australia_ds, ["accum_prcp"])  # this deletes its own reference to australia_ds
+    new_file_name1 = file_name_template.replace(".nc", ".{:03d}.nc".format(part_i + 1))
+    local_file_path2 = pathlib.Path(settings.TEMP_PATH).absolute() / new_file_name1
+    local_file_path2.parent.mkdir(parents=True, exist_ok=True)
+    prcp_file.to_netcdf(str(local_file_path2),
+                        encoding={'accum_prcp': compressed, 'lat': compressed, 'lon': compressed,
+                                  'time': compressed})
+    del prcp_file
+    whole_ds.close()
+    finished_dl.unlink()
+    return local_file_path2
+
+def get_thread_pool():
+    p = getattr(get_thread_pool, '_cached', None)
+    if p is None:
+        p = ThreadPool(8)
+        setattr(get_thread_pool, '_cached', p)
+    return p
+
+def download_all_parts(dl_list, file_name_template, thredds_fs_base):
+    p = get_thread_pool()
+    tasks = []
+    for _index, link in enumerate(dl_list):
+        full_dl = thredds_fs_base + link
+        temp_download_path = pathlib.Path(settings.TEMP_PATH).absolute() / link
+        task = p.apply_async(_download_part, args=(_index, full_dl, temp_download_path, file_name_template))
+        tasks.append(task)
+    done_files = [t.get() for t in tasks]
+    return done_files
+
 def get_latest_accessg_files(start_date=None, end_date=None):
     """\
     Transfer daily ACCESS-G files from Digiscapes Thredds server
@@ -239,38 +279,15 @@ def get_latest_accessg_files(start_date=None, end_date=None):
                     break
             else:
                 print(RuntimeError("Cannot find a location to download {}".format(find_file_name1)))
-                #continue
-                break
+                continue
         except Exception as e:
             print(e)
-            #continue
-            break
+            continue
 
     for date_str, dl in download_links.items():
-        new_files = []
         new_file_name = settings.access_g_filename(date_str)
         date = datetime.date(int(date_str[0:4]),int(date_str[4:6]),int(date_str[6:8]))
-        for index, link in enumerate(dl):
-            full_dl = thredds_fs_base + link
-            local_file_path = pathlib.Path(settings.TEMP_PATH).absolute() / link
-            if not local_file_path.exists():
-                print("Attempting to download: {}".format(full_dl))
-                local_file_path.parent.mkdir(parents=True, exist_ok=True)
-                finished_dl, http_status = url_retrieve_badssl(full_dl, local_file_path)
-            else:
-                print("Using existing downloaded: {}".format(full_dl))
-                finished_dl = local_file_path
-            whole_ds, australia_ds = limit_coordinates(finished_dl)
-            prcp_file = restrict_vars(australia_ds, ["accum_prcp"])  # this deletes its own reference to australia_ds
-            new_file_name1 = new_file_name.replace(".nc", ".{:03d}.nc".format(index+1))
-            local_file_path2 = pathlib.Path(settings.TEMP_PATH).absolute() / new_file_name1
-            local_file_path2.parent.mkdir(parents=True, exist_ok=True)
-            prcp_file.to_netcdf(str(local_file_path2),
-                                encoding={'accum_prcp': compressed, 'lat': compressed, 'lon': compressed, 'time': compressed})
-            del prcp_file
-            whole_ds.close()
-            new_files.append(local_file_path2)
-            local_file_path.unlink()
+        new_files = download_all_parts(dl, new_file_name, thredds_fs_base)
         merged_file = merge_files(new_files, ["accum_prcp"])
         merged_file.to_netcdf(settings.ACCESS_G_APS3_PATH + new_file_name,
                               encoding={'accum_prcp': compressed, 'lat': compressed, 'lon': compressed, 'time': compressed})
