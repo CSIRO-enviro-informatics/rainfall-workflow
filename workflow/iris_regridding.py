@@ -58,7 +58,7 @@ def get_smips_nc_blended_precipetation_dateslice(xd, d):
     return cube
 
 def get_smips_ml_precip_dateslice(d, with_NaNs=True):
-    origin_path = settings.ml_precip_src_path(d)
+    USE_COGS = True
     # try:
     #     # read the flt data
     #     d = np.fromfile(origin_path, dtype='f4')
@@ -73,16 +73,25 @@ def get_smips_ml_precip_dateslice(d, with_NaNs=True):
     # d1 = np.reshape(d, (rows, cols))
     # return d1, lat, lon
     try:
-        raster = rasterio.open(origin_path, driver="EHdr")
+        if USE_COGS:
+            origin_path = settings.ml_precip_src_path(d, date_at="end", ext="tif")
+            driver = "GTiff"
+        else:
+            origin_path = settings.ml_precip_src_path(d, date_at="start", ext="flt")
+            driver = "EHdr"
+        raster = rasterio.open(origin_path, driver=driver)
     except FileNotFoundError:
         return None
     except rasterio.RasterioIOError as e:
-        if "No such file" in str(e):
+        error_str = str(e)
+        if "No such file" in error_str:
+            return None
+        elif "HTTP" in error_str and "404" in error_str:
             return None
         raise
     xa = xr.open_rasterio(raster, parse_coordinates=True)
     #We want just the first band, it is the precip
-    xa = xa.sel(band=1)
+    xa = xa.isel(band=0)
     if with_NaNs:
         new_vals = np.where(xa == -9999, np.NaN, xa)
         xa.data = new_vals
@@ -146,7 +155,7 @@ def init_regridder():
         smips_iris = get_smips_nc_blended_precipetation_dateslice(smips_nc, datetime.date(2020, 1, 1))  # random smips file
         smips_iris.coord('longitude').guess_bounds()
         smips_iris.coord('latitude').guess_bounds()
-    elif settings.SMIPS_PRECIP_SOURCE == "MLPrecip":
+    elif settings.SMIPS_PRECIP_SOURCE.startswith("MLPrecip"):
         smips_nc = None
         smips_iris = get_smips_ml_precip_dateslice(datetime.date(2020, 1, 1))
         smips_iris.coord(var_name='y').guess_bounds()  #lat
@@ -189,7 +198,7 @@ def run_smips_regridding(update_only=True, start_date=False, end_date=False, ski
     elif settings.SMIPS_PRECIP_SOURCE == "blendedPrecipOutputs":
         smips_xd = open_smips_file()
         slice_getter = partial(get_smips_nc_blended_precipetation_dateslice, smips_xd)
-    elif settings.SMIPS_PRECIP_SOURCE == "MLPrecip":
+    elif settings.SMIPS_PRECIP_SOURCE.startswith("MLPrecip"):
         smips_xd = open_smips_file()
         slice_getter = get_smips_ml_precip_dateslice
     else:

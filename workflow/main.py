@@ -141,14 +141,14 @@ def _mp_create_parameter_files(lat, lons, altsource):
         lat_str = str(lat).replace("-", "s").replace(".", "_")
         maybe_sliced_g_file = access_g_file.replace(".nc", "{}.nc".format(lat_str))
         if os.path.exists(maybe_sliced_g_file):
-            print("MP Process opening sliced ACCESS-G: {}".format(maybe_sliced_g_file), flush=True)
+            print("MP Process will use pre-sliced ACCESS-G: {}".format(maybe_sliced_g_file), flush=True)
             forecast = xr.open_dataset(maybe_sliced_g_file, decode_times=False, lock=False, engine='netcdf4')
             try:
                 forecast_xa = forecast['accum_prcp'].sel(lat=lat)
             except ValueError:
                 forecast_xa = forecast['accum_prcp']
         else:
-            print("MP Process opening full ACCESS-G: {}".format(access_g_file), flush=True)
+            print("MP Process will use full ACCESS-G: {}".format(access_g_file), flush=True)
             forecast = xr.open_dataset(access_g_file, decode_times=False, lock=False, engine='netcdf4')
             forecast_xa = forecast['accum_prcp'].sel(lat=lat)
 
@@ -162,7 +162,7 @@ def _mp_create_parameter_files(lat, lons, altsource):
         print("Done preloading into RAM. Took {}m{}s.".format(str(t3_mins), str(t3_secs)), flush=True)
         for (_lat, lon) in lat_lon_pairs:
             try:
-                parameter_cube.generate_forecast_parameters(_lat, lon, observed_xa, forecast_xa, skip_existing=True)
+                parameter_cube.generate_forecast_parameters(_lat, lon, observed_xa, forecast_xa, skip_existing=False)
             except ValueError:  # coordinates don't have data or don't have a recognized timezone
                 continue
     except BaseException as e:
@@ -190,6 +190,7 @@ def create_parameter_files(restrict_nsw: bool = False, multi_process=False, use_
     observed = None
     forecast = None
     my_lats = lats
+    started = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
     if use_mpi:
         comm = use_mpi['comm']
         rank = use_mpi['rank']
@@ -200,7 +201,7 @@ def create_parameter_files(restrict_nsw: bool = False, multi_process=False, use_
         if rank == 0:
             chunked_lats = list(distributor(my_lats, world_size))
         my_lats = comm.scatter(chunked_lats, root=0)
-        print("rank: {} got lats: [{}]".format(rank, ",".join([str(la) for la in my_lats])), flush=True)
+        print("rank: {} started at {} - got lats: [{}]".format(rank, str(started), ",".join([str(la) for la in my_lats])), flush=True)
     try:
         if multi_process:
             if settings.config.get("PARAMS_USE_DASK", False):
@@ -296,11 +297,13 @@ def create_parameter_files(restrict_nsw: bool = False, multi_process=False, use_
         comm = use_mpi['comm']
         rank = use_mpi['rank']
         blocker = True
-        print("Rank {} tasks are finished. Signalling to Rank 0.".format(rank))
+        finished = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+        print("Rank {} tasks are finished at {} - Signalling to Rank 0.".format(rank, finished))
         blocker = comm.gather(blocker, root=0)
         if rank == 0:
             assert len(blocker) > 0
-            print("Rank 0 knows other MPI ranks are done. Continuing to aggregate_netcdf().", flush=True)
+            now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+            print("Rank 0 knows other MPI ranks are done at {} - Continuing to aggregate_netcdf().".format(now), flush=True)
             # continue down to aggregate_netcdf()
         else:
             assert blocker is None

@@ -29,7 +29,9 @@ defaults = module.defaults = {
     'PARAMS_DATE': datetime.date(2021, 1, 31),
     'MP_NUM_PROCESSES': "2",  # use 2-8 processes per node in multiprocessing mode
     # Set MP_NUM_PROCESSES to 1 on MPI-based runs!
-    'SMIPS_PRECIP_SOURCE': "MLPrecip"  # options: "SMIPS", "blendedPrecipOutputs", "MLPrecip"
+    'SMIPS_PRECIP_SOURCE': "MLPrecip" + path.sep + "v0.6" + path.sep,  # options: "SMIPS", "blendedPrecipOutputs", "MLPrecip"
+    "MLPRECIP_USE_HTTP": True,
+    'MLPRECIP_URL': "http://lw-111-cdc.it.csiro.au:8082/MLPrecip/v0.6/"
     #'SMIPS_PRECIP_SOURCE': "SMIPS"  # options: "SMIPS", "blendedPrecipOutputs", "MLPrecip"
 }
 if in_docker() or in_kubernetes():
@@ -42,7 +44,7 @@ if in_docker() or in_kubernetes():
     defaults['ACCESS_G_AGG'] = '/mnt/ACCESS-G-APS3/ACCESS-G.nc'  # path to aggregated access-g file
     defaults['ALTERNATE_ACCESS_G_AGG'] = False
     defaults['FC_PATH'] = '/mnt/RainfallForecasts/'
-    defaults['ML_PRECIP_PATH'] = '/mnt/MLPrecip/v0.5/'
+    defaults['MLPRECIP_PATH'] = '/mnt/'+defaults['SMIPS_PRECIP_SOURCE']
     defaults['BLENDED_PRECIP_PATH'] = '/mnt/blendedPrecipOutputs/'
 elif 'Linux' in platform.platform():
     defaults['ACCESS_G_APS2_PATH'] = '/datasets/work/lw-soildatarepo/work/RainfallWorkflow/ACCESS-G-APS2/ACCESS_G_12z/'  # access-g aps2 write path
@@ -54,7 +56,7 @@ elif 'Linux' in platform.platform():
     defaults['ACCESS_G_AGG'] = '/datasets/work/lw-soildatarepo/work/RainfallWorkflow/ACCESS-G-APS3/ACCESS-G.nc'  # path to aggregated access-g file
     defaults['ALTERNATE_ACCESS_G_AGG'] = False
     defaults['FC_PATH'] = '/datasets/work/lw-satsoilmoist/work/processed/RainfallForecasts/'
-    defaults['ML_PRECIP_PATH'] = '/datasets/work/lw-satsoilmoist/work/processed/MLPrecip/v0.5/'
+    defaults['MLPRECIP_PATH'] = '/datasets/work/lw-satsoilmoist/work/processed/'+defaults['SMIPS_PRECIP_SOURCE']
     defaults['BLENDED_PRECIP_PATH'] = '/datasets/work/lw-satsoilmoist/work/processed/blendedPrecipOutputs/'
     #if os.path.exists("/home/som05d/ssd/scratch"):
         # defaults['SMIPS_REGRID_AGG_PATH'] = '/home/som05d/ssd/scratch/source/SMIPS.nc'  # path to aggregated smips file
@@ -71,7 +73,7 @@ else:  # Windows
     defaults['SMIPS_REGRID_AGG_PATH'] = '\\\\fs1-cbr.nexus.csiro.au\\{lw-soildatarepo}\\work\\SMIPSRegrid\\'
     defaults['ACCESS_G_AGG'] = '\\\\fs1-cbr.nexus.csiro.au\\{lw-soildatarepo}\\work\\RainfallWorkflow\\ACCESS-G-APS3\\ACCESS-G.nc'
     defaults['FC_PATH'] = '\\\\fs1-cbr.nexus.csiro.au\\{lw-soildatarepo}\\work\\processed\\RainfallForecasts\\'
-    defaults['ML_PRECIP_PATH'] = '\\\\fs1-cbr.nexus.csiro.au\\{lw-soilsoilmoist}\\work\\processed\\MLPrecip\\v0.5\\'
+    defaults['MLPRECIP_PATH'] = '\\\\fs1-cbr.nexus.csiro.au\\{lw-soilsoilmoist}\\work\\processed\\'+defaults['SMIPS_PRECIP_SOURCE']
     defaults['BLENDED_PRECIP_PATH'] = '\\\\fs1-cbr.nexus.csiro.au\\{lw-soilsoilmoist}\\work\\processed\\blendedPrecipOutputs\\'
 
 config = module.config = dict()
@@ -83,7 +85,8 @@ SMIPS_PATH = config['SMIPS_PATH'] = getenv("SMIPS_PATH", None)
 SMIPS_DEST_PATH = config['SMIPS_DEST_PATH'] = getenv("SMIPS_DEST_PATH", None)
 SMIPS_REGRID_AGG_PATH = config['SMIPS_REGRID_AGG_PATH'] = getenv("SMIPS_REGRID_AGG_PATH", None)
 ACCESS_G_AGG = config['ACCESS_G_AGG'] = getenv("ACCESS_G_AGG", None)
-ML_PRECIP_PATH = config['ML_PRECIP_PATH'] = getenv("ML_PRECIP_PATH", None)
+MLPRECIP_PATH = config['MLPRECIP_PATH'] = getenv("MLPRECIP_PATH", None)
+MLPRECIP_URL = config['MLPRECIP_URL'] = getenv("MLPRECIP_URL", None)
 BLENDED_PRECIP_PATH = config['BLENDED_PRECIP_PATH'] = getenv("BLENDED_PRECIP_PATH", None)
 FC_PATH = config['FC_PATH'] = getenv("FC_PATH", None)
 TEMP_PATH = config['TEMP_PATH'] = getenv("TEMP_PATH", None)
@@ -119,7 +122,7 @@ def SMIPS_REGRID_AGG():
         return pathlib.Path(path + "SMIPS_Regrid.nc")
     elif src == "blendedPrecipOutputs":
         return pathlib.Path(path + "SMIPS_blendedPrecip_Regrid.nc")
-    elif src == "MLPrecip":
+    elif src.startswith("MLPrecip"):
         return pathlib.Path(path + "SMIPS_MLPrecip_Regrid.nc")
     else:
         raise RuntimeError("Bad SMIPS_PRECIP_SOURCE: {}".format(src))
@@ -162,19 +165,31 @@ def smips_regrid_dest_filename(str_date):
         return str_date[:4] + path.sep + 'SMIPS_blnd_prcp_regrid_'+ str_date +'.nc'
     elif src == "blendedPrecipOutputs":
         return str_date[:4] + path.sep + 'SMIPS_blnd_prcp_regrid_'+ str_date +'.nc'
-    elif src == "MLPrecip":
+    elif src.startswith("MLPrecip"):
         return ml_precip_regrid_dest_filename(str_date)
     else:
         raise RuntimeError("Bad SMIPS_PRECIP_SOURCE: {}".format(src))
 
 
-def ml_precip_regrid_dest_filename(str_date):
+def ml_precip_regrid_dest_filename(str_date, date_at="end", ext="nc"):
     str_date = date_type_check(str_date)
-    return str_date[:4] + path.sep + "ML_Daily_Precip_est_1dd_regrid_" + str_date + ".nc"
+    if date_at == "start":
+        return str_date[:4] + path.sep + str_date + "_ML_Daily_Precip_est_1dd_regrid." + ext
+    else:
+        return str_date[:4] + path.sep + "ML_Daily_Precip_est_1dd_regrid_" + str_date + "." + ext
 
-def ml_precip_src_path(str_date):
+def ml_precip_src_path(str_date, date_at="end", ext="tif"):
     str_date = date_type_check(str_date)
-    return ML_PRECIP_PATH + str_date[:4] + path.sep + str_date + "_ML_Daily_Precip_est_1dd.flt"
+    if module.MLPRECIP_USE_HTTP is True:
+        if date_at == "start":
+            return MLPRECIP_URL + str_date[:4] + '/' + str_date + "_ML_Daily_Precip_est_1dd." + ext
+        else:
+            return MLPRECIP_URL + str_date[:4] + '/' + "ML_Daily_Precip_est_1dd_" + str_date + "." + ext
+    else:
+        if date_at == "start":
+            return MLPRECIP_PATH + str_date[:4] + path.sep + str_date + "_ML_Daily_Precip_est_1dd." + ext
+        else:
+            return MLPRECIP_PATH + str_date[:4] + path.sep + "ML_Daily_Precip_est_1dd_" + str_date + "." + ext
 
 def smips_dest_mask():
     src = config['SMIPS_PRECIP_SOURCE']
@@ -182,7 +197,7 @@ def smips_dest_mask():
         mask = 'SMIPS_blnd_prcp_regrid*.nc'
     elif src == "blendedPrecipOutputs":
         mask = 'SMIPS_blnd_prcp_regrid*.nc'
-    elif src == "MLPrecip":
+    elif src.startswith("MLPrecip"):
         mask = 'ML_Daily_Precip_est_1dd_regrid*.nc'
     else:
         raise RuntimeError("Bad SMIPS_PRECIP_SOURCE: {}".format(src))
